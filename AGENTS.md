@@ -11,6 +11,8 @@ You're in **dala_dev**, the build/deploy/devices toolkit for the dala ecosystem.
 
 **Important**: Read [`~/code/dala/docs/reference/AGENTS.md`](../dala/docs/reference/AGENTS.md) first for the system-wide view, the three-repo topology (dala, dala_dev, dala_new), and the cross-cutting pre-empt-failure rules that apply across all repositories. The notes below are dala_dev-specific conventions and gotchas.
 
+**Dala v0.2.0** introduces a plugin architecture where Dala core knows almost nothing — plugins self-describe through schema, commands, and native capabilities. See the `Dala.Plugin` section below. New in this version: GPU render surface, media runtime (video, scene graph, GPU filters), ML stack (Nx, EMLX, CoreML, ONNX), and expanded platform APIs (Clipboard, Share, Location, Notify, Diag, PubSub, Registry).
+
 ## What this repo is
 
 This repository provides the command-line tooling and library code for mobile development workflows with Elixir/OTP.
@@ -348,14 +350,14 @@ adb forward tcp:9100 tcp:9100   # dist:  Mac → device
 - `Dala.Camera` → `Dala.Media.Camera`
 - `Dala.Audio` → `Dala.Media.Audio`
 - `Dala.Photos` → `Dala.Media.Photos`
-- `Dala.PubSub` → `Dala.Platform.Pubsub`
+- `Dala.PubSub` → `Dala.Platform.PubSub`
 - `Dala.Event` → `Dala.Event.Event`
 - `Dala.LiveView` → `Dala.Platform.LiveView`
 - `Dala.WebView` → `Dala.Ui.Embedded.Webview`
 - `Dala.Motion` → `Dala.Ui.Sensor.Motion`
 - `Dala.Alert` → `Dala.Ui.Feedback.Alert`
 - `Dala.Theme.set/1` → `Dala.Theme.Theme.set/1`
-- `Dala.ML` → `Dala.Ml.Ml` (implementation)
+- `Dala.ML` — ML facade, delegates to `Dala.Ml.Ml` (implementation at `lib/dala/ml/ml.ex`)
 - `Dala.Test` — testing facade, delegates to `Dala.Test.Test` (implementation at `lib/dala/test/test.ex`)
 - `Dala.Plugin` → `Dala.Plugin` (struct + behaviour, unchanged)
 - `Dala.Plugin.Registry` → `Dala.Plugin.Registry` (unchanged)
@@ -375,15 +377,28 @@ adb forward tcp:9100 tcp:9100   # dist:  Mac → device
 - `Dala.State` → `Dala.Platform.State`
 - `Dala.Linking` → `Dala.Platform.Linking`
 - `Dala.Background` → `Dala.Platform.Background`
+- `Dala.Gpu` → `Dala.Gpu` (GPU surface rendering, unchanged)
+- `Dala.Permissions` → `Dala.Permissions` (permission management, unchanged)
+- `Dala.Clipboard` → `Dala.Platform.Clipboard`
+- `Dala.Share` → `Dala.Platform.Share`
+- `Dala.Location` → `Dala.Platform.Location`
+- `Dala.Notify` → `Dala.Platform.Notify`
+- `Dala.Scanner` → `Dala.Hardware.Scanner`
+- `Dala.Biometric` → `Dala.Hardware.Biometric`
+- `Dala.Camera` → `Dala.Media.Camera`
+- `Dala.Audio` → `Dala.Media.Audio`
+- `Dala.Photos` → `Dala.Media.Photos`
+- `Dala.Video` → `Dala.Media.Video`
+- `Dala.Setup` → `Dala.Setup` (BT/WiFi setup helper, unchanged)
 
 **New facade modules** (top-level, delegate to sub-namespaces):
 - `Dala` — main facade, delegates `assign/2` and `assign/3` to `Dala.Socket`
-- `Dala.ML` — ML facade, delegates to `Dala.Ml.Ml`
-- `Dala.Test` — testing facade, delegates to `Dala.Test.Test`
-- `Dala.App` — app facade, delegates to `Dala.App.App`
-- `Dala.Screen` — screen facade, delegates to `Dala.Screen.Screen`
+- `Dala.ML` — ML facade, delegates to `Dala.Ml.Ml` (implementation at `lib/dala/ml/ml.ex`)
+- `Dala.Test` — testing facade, delegates to `Dala.Test.Test` (implementation at `lib/dala/test/test.ex`)
+- `Dala.App` — app facade, delegates to `Dala.App.App` (implementation at `lib/dala/app/app.ex`)
+- `Dala.Screen` — screen facade, delegates to `Dala.Screen.Screen` (implementation at `lib/dala/screen/screen.ex`)
 - `Dala.Renderer` — renderer facade, delegates to `Dala.Ui.Renderer`
-- `Dala.Plugin` — plugin facade, delegates to `Dala.Plugin`
+- `Dala.Plugin` — plugin facade, delegates to `Dala.Plugin` (struct + behaviour, unchanged)
 
 **Rule**: When writing new code in dala_dev that references dala internals, use the new sub-namespace paths. When generating code for user projects (templates), use the facade names.
 
@@ -425,7 +440,8 @@ adb forward tcp:9100 tcp:9100   # dist:  Mac → device
 - iOS simulator: EMLX with Metal GPU, JIT enabled
 - Android: Nx.BinaryBackend
 
-CoreML predictions are synchronous (NIF captures ObjC callback via Mutex) and run on the dirty CPU scheduler.
+CoreML predictions are synchronous (NIF captures ObjC callback via Mutex) and run on the dirty CPU scheduler (`schedule = "DirtyCpu"`).
+ONNX NIFs are also dirty CPU scheduled and available on both iOS and Android.
 
 ### 22. Bluetooth/WiFi Setup
 
@@ -476,11 +492,20 @@ CoreML predictions are synchronous (NIF captures ObjC callback via Mutex) and ru
 - `Dala.Event` — unified event emission: `dispatch/4`, `emit/4`, `send_test/6`
 - `Dala.Event.Bridge` — event routing between native and BEAM
 - `Dala.Event.Throttle` — event throttling/debouncing
+- `Dala.Event.Trace` — event tracing for debugging
+- `Dala.Event.Target` — event target
 - `Dala.Ui.NativeView` — stateful Elixir processes paired with platform-native views
 - `Dala.Platform.Background` — background execution keep-alive
 - `Dala.Platform.Linking` — open URLs, deep links
 - `Dala.Platform.Settings` — persistent settings (UserDefaults/SharedPreferences)
 - `Dala.Platform.State` — DETS-backed persistent key-value store
+- `Dala.Platform.PubSub` — local PubSub via Elixir Registry
+- `Dala.Platform.Registry` — process registry
+- `Dala.Platform.Clipboard` — clipboard
+- `Dala.Platform.Share` — share sheet
+- `Dala.Platform.Location` — location services
+- `Dala.Platform.Notify` — push notifications
+- `Dala.Platform.Diag` — diagnostics
 - `Dala.Storage.Blob` — binary data via native blob references
 - `Dala.Storage.Storage` — app-local file storage with named locations
 - `Dala.Wakelock` — screen wakelock
@@ -488,8 +513,8 @@ CoreML predictions are synchronous (NIF captures ObjC callback via Mutex) and ru
 - `Dala.Ui.Embedded.Webview` — bidirectional JS bridge for WebView
 - `Dala.Ui.Sensor.Motion` — accelerometer and gyroscope
 - `Dala.List` — list rendering with custom item renderers
-- `Dala.PubSub` — local PubSub via Elixir Registry
 - `Dala.Connectivity.Dist` — platform-aware Erlang distribution startup
+- `Dala.Setup` — BT/WiFi setup helper
 
 ### 27. Dala.Test — Two-Layer Inspection Model
 
@@ -518,6 +543,52 @@ def navigation(_) do
 end
 ```
 This validates at compile time that the modules are valid `Dala.Screen` modules.
+
+### 29. GPU Render Surface
+
+**Problem**: GPU rendering requires a surface lifecycle managed by a GenServer.
+
+**Solution**: `Dala.Gpu` provides a CPU-side framebuffer uploaded to GPU every frame:
+- `Dala.Gpu.create_surface/2` — creates a new GPU surface
+- `Dala.Gpu.clear/2`, `Dala.Gpu.fill_rect/6`, `Dala.Gpu.draw_line/6` — render commands
+- `Dala.Gpu.present/1` — flush command queue and update GPU texture
+- `Dala.Gpu.dispatch_compute/4` — dispatch GPU compute shaders
+- `Dala.Gpu.with_pixels/2` — direct pixel access via callback
+
+**Use cases**: Custom canvas rendering, ML tensor visualization, game-like rendering, video processing, shader effects.
+
+### 30. Media Runtime (Video, Scene Graph, GPU Filters)
+
+**Problem**: Media playback and processing requires a pipeline architecture.
+
+**Solution**: Dala's media runtime provides:
+- `Dala.Media.Video` — video playback
+- `Dala.Media.Pipeline` — media pipeline
+- `Dala.Media.Scene` — scene graph
+- `Dala.Media.Stream` — media streaming
+- `Dala.Media.Filter` — GPU filters
+- `Dala.Media.Texture` — GPU textures
+- `Dala.Media.Adaptive` — adaptive bitrate
+- `Dala.Media.Animation` — animations
+- `Dala.Media.Clock` — media clock
+- `Dala.Media.Subtitle` — subtitles
+
+**Rule**: Media modules use the GPU surface for rendering. See `guides/media_runtime.md` for the complete media runtime documentation.
+
+### 31. Permission Management
+
+**Problem**: iOS and Android require runtime permission requests for device capabilities.
+
+**Solution**: `Dala.Permissions` provides a unified interface:
+- `Dala.Permissions.request(pid, :camera)` — request a permission (result arrives via `handle_info`)
+- `Dala.Permissions.check(:camera)` — check if granted (`:granted` | `:denied`)
+- `Dala.Permissions.supported_permissions/0` — list all supported permissions
+- `Dala.Permissions.ios_plist_key/1` — returns the iOS plist key for a permission
+- `Dala.Permissions.android_permission/1` — returns the Android permission string
+
+**Supported permissions**: `:camera`, `:microphone`, `:bluetooth`, `:location`, `:storage`, `:photos`, `:contacts`, `:notifications`
+
+**Rule**: Always request permissions before using the corresponding device API. Use `Dala.Permissions` rather than platform-specific permission code.
 
 ## Public API Seams (Testing Interfaces)
 
@@ -691,8 +762,27 @@ When writing new code in dala_dev that references dala internals, use the **new 
 - `Dala.Media.Camera` — camera (`lib/dala/media/camera.ex`)
 - `Dala.Media.Audio` — audio (`lib/dala/media/audio.ex`)
 - `Dala.Media.Photos` — photo library (`lib/dala/media/photos.ex`)
+- `Dala.Media.Video` — video playback (`lib/dala/media/video.ex`)
+- `Dala.Media.Pipeline` — media pipeline (`lib/dala/media/pipeline.ex`)
+- `Dala.Media.Scene` — scene graph (`lib/dala/media/scene.ex`)
+- `Dala.Media.Stream` — media streaming (`lib/dala/media/stream.ex`)
+- `Dala.Media.Filter` — GPU filters (`lib/dala/media/filter.ex`)
+- `Dala.Media.Texture` — GPU textures (`lib/dala/media/texture.ex`)
+- `Dala.Media.Adaptive` — adaptive bitrate (`lib/dala/media/adaptive.ex`)
+- `Dala.Media.Animation` — animations (`lib/dala/media/animation.ex`)
+- `Dala.Media.Clock` — media clock (`lib/dala/media/clock.ex`)
+- `Dala.Media.Subtitle` — subtitles (`lib/dala/media/subtitle.ex`)
 - `Dala.Connectivity.Dist` — Erlang distribution (`lib/dala/connectivity/dist.ex`)
 - `Dala.Connectivity.Wifi` — WiFi (`lib/dala/connectivity/wifi.ex`)
+- `Dala.Permissions` — permission management (`lib/dala/permissions.ex`)
+- `Dala.Platform.Clipboard` — clipboard (`lib/dala/platform/clipboard.ex`)
+- `Dala.Platform.Share` — share sheet (`lib/dala/platform/share.ex`)
+- `Dala.Platform.Location` — location services (`lib/dala/platform/location.ex`)
+- `Dala.Platform.Notify` — push notifications (`lib/dala/platform/notify.ex`)
+- `Dala.Platform.Diag` — diagnostics (`lib/dala/platform/diag.ex`)
+- `Dala.Platform.PubSub` — local PubSub (`lib/dala/platform/pub_sub.ex`)
+- `Dala.Platform.Registry` — process registry (`lib/dala/platform/registry.ex`)
+- `Dala.Setup` — BT/WiFi setup helper (`lib/dala/setup.ex`)
 
 **Platform**:
 - `Dala.Platform.Native` — NIF interface (`lib/dala/platform/native.ex`)
@@ -701,7 +791,14 @@ When writing new code in dala_dev that references dala internals, use the **new 
 - `Dala.Platform.Linking` — deep linking (`lib/dala/platform/linking.ex`)
 - `Dala.Platform.Settings` — persistent settings (`lib/dala/platform/settings.ex`)
 - `Dala.Platform.State` — DETS-backed state (`lib/dala/platform/state.ex`)
-- `Dala.Platform.Pubsub` — local PubSub (`lib/dala/platform/pubsub.ex`)
+- `Dala.Platform.PubSub` — local PubSub (`lib/dala/platform/pub_sub.ex`)
+- `Dala.Platform.Registry` — process registry (`lib/dala/platform/registry.ex`)
+- `Dala.Platform.Clipboard` — clipboard (`lib/dala/platform/clipboard.ex`)
+- `Dala.Platform.Share` — share sheet (`lib/dala/platform/share.ex`)
+- `Dala.Platform.Location` — location services (`lib/dala/platform/location.ex`)
+- `Dala.Platform.Notify` — push notifications (`lib/dala/platform/notify.ex`)
+- `Dala.Platform.Diag` — diagnostics (`lib/dala/platform/diag.ex`)
+- `Dala.Platform.Permissions` — permissions (`lib/dala/platform/permissions.ex`)
 
 **Storage**:
 - `Dala.Storage.Storage` — file storage (`lib/dala/storage/storage.ex`)
@@ -712,6 +809,8 @@ When writing new code in dala_dev that references dala internals, use the **new 
 - `Dala.Event.Event` — unified events (`lib/dala/event/event.ex`)
 - `Dala.Event.Bridge` — event routing (`lib/dala/event/bridge.ex`)
 - `Dala.Event.Throttle` — event throttling (`lib/dala/event/throttle.ex`)
+- `Dala.Event.Trace` — event tracing for debugging (`lib/dala/event/trace.ex`)
+- `Dala.Event.Target` — event target (`lib/dala/event/target.ex`)
 
 **Testing**:
 - `Dala.Test.Test` — testing facade implementation (`lib/dala/test/test.ex`)
@@ -726,7 +825,19 @@ When writing new code in dala_dev that references dala internals, use the **new 
 - `Dala.Plugin.Manifest` — manifest generation (`lib/dala/plugin/manifest.ex`)
 
 **ML**:
+- `Dala.ML` — ML facade (`lib/dala/ml.ex`)
 - `Dala.Ml.Ml` — ML facade implementation (`lib/dala/ml/ml.ex`)
+- `Dala.ML.EMLX` — Apple Silicon GPU backend (`lib/dala/ml/emlx.ex`)
+- `Dala.ML.CoreML` — iOS CoreML bridge (`lib/dala/ml/coreml.ex`)
+- `Dala.ML.ONNX` — ONNX Runtime bridge (`lib/dala/ml/onnx.ex`)
+- `Dala.Ml.Nx` — Nx tensor helpers (`lib/dala/ml/nx.ex`)
+
+**GPU**:
+- `Dala.Gpu` — GPU surface rendering (`lib/dala/gpu.ex`)
+- `Dala.Gpu.Command` — GPU render commands (`lib/dala/gpu/command.ex`)
+- `Dala.Gpu.Surface` — GPU surface GenServer (`lib/dala/gpu/surface.ex`)
+- `Dala.Gpu.Shader` — GPU shader management (`lib/dala/gpu/shader.ex`)
+- `native/dala_gpu/` — Rust GPU render backend
 
 **Spark DSL**:
 - `Dala.Spark.Dsl` — screen DSL (`lib/dala/spark/dsl.ex`)
