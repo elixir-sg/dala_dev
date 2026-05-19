@@ -4,8 +4,6 @@ Development tooling for [Dala](https://hexdocs.pm/dala) — the BEAM-on-device m
 
 [![Hex.pm](https://img.shields.io/hexpm/v/dala_dev.svg)](https://hex.pm/packages/dala_dev)
 
-Original repo [mob_dev](https://github.com/GenericJam/mob_dev) — now part of the [Dala](https://github.com/manhvu/dala) ecosystem.
-
 **Dual licensed under:**
 - **MIT License** (for original Mob project portions) - see [LICENSE](LICENSE)
 - **MPL 2.0** (for new contributions) - see [LICENSE-MPL2.0](LICENSE-MPL2.0)

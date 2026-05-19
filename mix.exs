@@ -4,7 +4,7 @@ defmodule DalaDev.MixProject do
   def project do
     [
       app: :dala_dev,
-      version: "0.2.0",
+      version: "0.2.1",
       elixir: "~> 1.18",
       description: "Development tooling for the Dala framework",
       source_url: "https://github.com/manhvu/dala_dev",
@@ -37,6 +37,7 @@ defmodule DalaDev.MixProject do
   defp docs do
     [
       main: "readme",
+      logo: "assets/logo/Dala_logo_512.png",
       source_url: "https://github.com/manhvu/dala_dev",
       source_url_pattern: "https://github.com/manhvu/dala_dev/blob/main/%{path}#L%{line}",
       extras: [
