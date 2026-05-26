@@ -11,7 +11,7 @@ You're in **dala_dev**, the build/deploy/devices toolkit for the dala ecosystem.
 
 **Important**: Read [`~/code/dala/docs/reference/AGENTS.md`](../dala/docs/reference/AGENTS.md) first for the system-wide view, the three-repo topology (dala, dala_dev, dala_new), and the cross-cutting pre-empt-failure rules that apply across all repositories. The notes below are dala_dev-specific conventions and gotchas.
 
-**Dala v0.2.0** introduces a plugin architecture where Dala core knows almost nothing — plugins self-describe through schema, commands, and native capabilities. See the `Dala.Plugin` section below. New in this version: GPU render surface, media runtime (video, scene graph, GPU filters), ML stack (Nx, EMLX, CoreML, ONNX), and expanded platform APIs (Clipboard, Share, Location, Notify, Diag, PubSub, Registry).
+**Dala v0.6.x** introduces a plugin architecture where Dala core knows almost nothing — plugins self-describe through schema, commands, and native capabilities. See the `Dala.Plugin` section below. New in this version: GPU render surface, media runtime (video, scene graph, GPU filters), ML stack (Nx, EMLX, CoreML, ONNX, Burn), expanded platform APIs (Clipboard, Share, Location, Notify, Diag, PubSub, Registry, Permissions, LiveView), NFC, screen manager, adaptive theming, and a comprehensive two-layer testing model (render tree + native UI).
 
 ## What this repo is
 
@@ -64,6 +64,12 @@ These are the commands users run via `mix dala.<task>`:
 - **`mix dala.trace`** — Distributed tracing for dala clusters
 - **`mix dala.bench`** — Run performance benchmarks on dala nodes
 
+**File transfer**:
+- **`mix dala.push_file`** — Push a file or directory to connected devices
+- **`mix dala.pull_file`** — Pull a file or directory from a connected device
+- **`mix dala.sync`** — Sync a local directory with a device directory (bidirectional with delete)
+- **`mix dala.file_ls`** — List files in a directory on a connected device
+
 **Battery benchmarking**:
 - **`mix dala.battery_bench_android`** — Android battery benchmarking
 - **`mix dala.battery_bench_ios`** — iOS battery benchmarking
@@ -89,6 +95,7 @@ These are the commands users run via `mix dala.<task>`:
 - **`DalaDev.Tracing`** — Distributed tracing infrastructure
 - **`DalaDev.Network`** — Network diagnostics and device connectivity
 - **`DalaDev.LogCollector`** — Log collection and streaming from devices
+- **`DalaDev.FileTransfer`** — File/folder push, pull, sync, and ls for connected devices
 - **`DalaDev.ScreenCapture`** — Screenshot and video capture from devices
 - **`DalaDev.Debugger`** — Interactive remote debugging
 - **`DalaDev.Observer`** — Remote node observation (web-based :observer)
@@ -327,26 +334,30 @@ adb forward tcp:9100 tcp:9100   # dist:  Mac → device
 **Solution**: Top-level facade modules still exist and delegate to the new locations. Use the **facade module names** (`Dala.Screen`, `Dala.Socket`, `Dala.Renderer`, etc.) for public API calls — they still work. Use the **new sub-namespace paths** when referencing internal implementation details.
 
 **Key mappings**:
-- `Dala.App` → `Dala.App.App` (implementation)
-- `Dala.Screen` → `Dala.Screen.Screen` (implementation)
-- `Dala.Renderer` → `Dala.Ui.Renderer`
-- `Dala.Socket` → `Dala.Ui.Socket`
+- `Dala` — main facade (`lib/dala.ex`), delegates `assign/2` and `assign/3` to `Dala.Socket`
+- `Dala.App` — app facade (`lib/dala/app.ex`), delegates to `Dala.App.App` (`lib/dala/app/app.ex`)
+- `Dala.Screen` — screen facade (`lib/dala/screen.ex`), delegates to `Dala.Screen.Screen` (`lib/dala/screen/screen.ex`)
+- `Dala.Socket` — socket struct + API (`lib/dala/socket.ex`); `Dala.Ui.Socket` is a deprecated type alias
+- `Dala.Renderer` — renderer facade (`lib/dala/renderer.ex`), delegates to `Dala.Ui.Renderer` (`lib/dala/ui/renderer.ex`)
+- `Dala.Node` — node struct (`lib/dala/node.ex`), includes `stable_id/1`, `init_id_cache/0`, `compute_layout_hash/1`, `from_map/2`, `to_map/1`
+- `Dala.Test` — testing facade (`lib/dala/test.ex`), delegates to `Dala.Test.Test` (`lib/dala/test/test.ex`)
+- `Dala.ML` — ML facade (`lib/dala/ml.ex`), delegates to `Dala.Ml.Ml` (`lib/dala/ml/ml.ex`)
 - `Dala.Component` → `Dala.Ui.NativeView`
 - `Dala.ComponentServer` → `Dala.Ui.NativeView.Server`
 - `Dala.ComponentRegistry` → `Dala.Ui.NativeView.Registry`
 - `Dala.Diff` → `Dala.Ui.Diff`
-- `Dala.Node` — node struct (`lib/dala/node.ex`)
 - `Dala.List` → `Dala.Ui.List`
 - `Dala.Style` → `Dala.Ui.Style`
 - `Dala.Native` → `Dala.Platform.Native`
 - `Dala.NativeLogger` → `Dala.Platform.NativeLogger`
 - `Dala.Dist` → `Dala.Connectivity.Dist`
 - `Dala.WiFi` → `Dala.Connectivity.Wifi`
-- `Dala.Device` → `Dala.Device.Device`
+- `Dala.Device` → `Dala.Device.Device` (with `Dala.Device.Ios` and `Dala.Device.Android` as sub-modules)
 - `Dala.Bluetooth` → `Dala.Hardware.Bluetooth`
 - `Dala.Haptic` → `Dala.Hardware.Haptic`
 - `Dala.Scanner` → `Dala.Hardware.Scanner`
 - `Dala.Biometric` → `Dala.Hardware.Biometric`
+- `Dala.NFC` → `Dala.Hardware.Nfc` (new)
 - `Dala.Camera` → `Dala.Media.Camera`
 - `Dala.Audio` → `Dala.Media.Audio`
 - `Dala.Photos` → `Dala.Media.Photos`
@@ -357,8 +368,6 @@ adb forward tcp:9100 tcp:9100   # dist:  Mac → device
 - `Dala.Motion` → `Dala.Ui.Sensor.Motion`
 - `Dala.Alert` → `Dala.Ui.Feedback.Alert`
 - `Dala.Theme.set/1` → `Dala.Theme.Theme.set/1`
-- `Dala.ML` — ML facade, delegates to `Dala.Ml.Ml` (implementation at `lib/dala/ml/ml.ex`)
-- `Dala.Test` — testing facade, delegates to `Dala.Test.Test` (implementation at `lib/dala/test/test.ex`)
 - `Dala.Plugin` → `Dala.Plugin` (struct + behaviour, unchanged)
 - `Dala.Plugin.Registry` → `Dala.Plugin.Registry` (unchanged)
 - `Dala.Plugin.Lifecycle` → `Dala.Plugin.Lifecycle` (unchanged)
@@ -366,8 +375,9 @@ adb forward tcp:9100 tcp:9100   # dist:  Mac → device
 - `Dala.Plugin.ComponentDSL` → `Dala.Plugin.ComponentDSL` (unchanged)
 - `Dala.Plugin.Manifest` → `Dala.Plugin.Manifest` (unchanged)
 - `Dala.Plugin.Protocol` → `Dala.Plugin.Protocol` (unchanged)
+- `Dala.Plugin.Event` → `Dala.Plugin.Event` (new — typed event definitions for plugins)
 - `Dala.Nav.Registry` → `Dala.Nav.Registry` (unchanged)
-- `Dala.Screen.Manager` → `Dala.Screen.Manager` (unchanged)
+- `Dala.Screen.Manager` → `Dala.Screen.Manager` (new — central registry for tracking active screens)
 - `Dala.Preview` → `Dala.Preview` (dev-only, in `dev_tools/`)
 - `Dala.Wakelock` → `Dala.Hardware.Wakelock`
 - `Dala.Storage` → `Dala.Storage.Storage`
@@ -383,11 +393,6 @@ adb forward tcp:9100 tcp:9100   # dist:  Mac → device
 - `Dala.Share` → `Dala.Platform.Share`
 - `Dala.Location` → `Dala.Platform.Location`
 - `Dala.Notify` → `Dala.Platform.Notify`
-- `Dala.Scanner` → `Dala.Hardware.Scanner`
-- `Dala.Biometric` → `Dala.Hardware.Biometric`
-- `Dala.Camera` → `Dala.Media.Camera`
-- `Dala.Audio` → `Dala.Media.Audio`
-- `Dala.Photos` → `Dala.Media.Photos`
 - `Dala.Video` → `Dala.Media.Video`
 - `Dala.Setup` → `Dala.Setup` (BT/WiFi setup helper, unchanged)
 
@@ -456,9 +461,13 @@ ONNX NIFs are also dirty CPU scheduled and available on both iOS and Android.
 **Solution**: `Dala.Plugin` behaviour with `Dala.Plugin.Lifecycle` and `Dala.Plugin.Registry`:
 - Lifecycle states: `:registered` → `:initialized` → `:active` → `:registered` → `:unloaded`
 - `Dala.Plugin.Lifecycle` manages init/activate/deactivate/cleanup transitions
-- `Dala.Plugin.Registry` handles dependency resolution (topological sort), capability queries, and platform filtering
+- `Dala.Plugin.Registry` handles dependency resolution (topological sort via Kahn's algorithm), capability queries, and platform filtering
 - Two DSL styles: top-level declarations and `plugin do` block
 - Plugins MUST declare `schema_version`, `protocol_version`, and `native_api_version`
+- `Dala.Plugin.Event` provides typed event definitions with compile-time field validation and binary encoding
+- Plugin macros: `component/2`, `schema_version/1`, `protocol_version/1`, `native_api_version/1`, `description/1`, `permission/1`, `dependency/1`, `platform/1`, `native_module/1`, `plugin/1` (block), `plugin_component/2`, `plugin_event/2`, `plugin_native/2`, `plugin_permission/1`, `plugin_dependency/2`, `plugin_platform/1`, `plugin_description/1`
+- Generated functions: `__plugin_info__/0`, `register/0`, `component/1`, `components/0`, `components_list/0`, `capabilities/0`, `permissions/0`, `native_modules/1`, `dependencies/0`, `validate_config/1`, `handle_event/3`, `init/1`, `cleanup/1`, `generate_protocol/0`, `generate_manifest/0`, `__auto_register__/0`
+- `Dala.Plugin.auto_register/0` scans all loaded applications for plugin modules and auto-registers them
 
 **Rule**: Plugins should NEVER directly access BEAM internals, scheduler state, or raw protocol sockets. Use the Host API seam.
 
@@ -494,6 +503,8 @@ ONNX NIFs are also dirty CPU scheduled and available on both iOS and Android.
 - `Dala.Event.Throttle` — event throttling/debouncing
 - `Dala.Event.Trace` — event tracing for debugging
 - `Dala.Event.Target` — event target
+- `Dala.Event.Address` — event addressing
+- `Dala.Event.Component` — component-level events
 - `Dala.Ui.NativeView` — stateful Elixir processes paired with platform-native views
 - `Dala.Platform.Background` — background execution keep-alive
 - `Dala.Platform.Linking` — open URLs, deep links
@@ -526,8 +537,11 @@ ONNX NIFs are also dirty CPU scheduled and available on both iOS and Android.
 - **Accessibility tree** (`ui_tree/1`) — OS accessibility tree (requires AX activation on iOS)
 
 **Navigation helpers** (synchronous): `pop/1`, `navigate/3`, `pop_to/2`, `pop_to_root/1`, `reset_to/3`
-**Native UI helpers**: `tap_xy/3`, `type_text/2`, `swipe/5`, `ax_action/3`, `toggle/2`, `adjust_slider/4`
-**WebView helpers**: `webview_eval/2`, `webview_tap/3`, `webview_type/3`, `webview_navigate/2`
+**Native UI helpers**: `tap_xy/3`, `type_text/2`, `swipe/5`, `ax_action/3`, `ax_action_at_xy/4`, `toggle/2`, `adjust_slider/4`, `dismiss_alert/2`, `long_press_xy/4`, `delete_backward/1`, `key_press/2`, `clear_text/1`
+**WebView helpers**: `webview_eval/2`, `webview_tap/3`, `webview_type/3`, `webview_navigate/2`, `webview_reload/1`, `webview_stop_loading/1`, `webview_go_forward/1`, `webview_clear/2`, `webview_screenshot/1`, `webview_post_message/2`
+**Inspection helpers**: `screen/1`, `assigns/1`, `inspect/1`, `screen_info/1`, `view_tree_flat/1`, `flatten_tree/1`, `find_native/2`, `wait_for/3`, `wait_for_text/3`
+**Simulation helpers**: `send_message/2` — simulates async device API results (camera, location, notifications, permissions, etc.)
+**Native gesture helpers**: `tap_native/1`, `locate/1` — drive native UI via `idb` on iOS simulator
 
 **Rule**: Prefer `Dala.Test` over screenshots. Use render tree first for Dala apps, native tree for geometry/frames, AX tree for non-Dala content.
 
@@ -555,6 +569,8 @@ This validates at compile time that the modules are valid `Dala.Screen` modules.
 - `Dala.Gpu.dispatch_compute/4` — dispatch GPU compute shaders
 - `Dala.Gpu.with_pixels/2` — direct pixel access via callback
 
+**Sub-modules**: `Dala.Gpu.Command` (render commands), `Dala.Gpu.Surface` (GenServer), `Dala.Gpu.Shader` (shader management), `Dala.Gpu.Compute` (compute shaders), `Dala.Gpu.Native` (native GPU interface)
+
 **Use cases**: Custom canvas rendering, ML tensor visualization, game-like rendering, video processing, shader effects.
 
 ### 30. Media Runtime (Video, Scene Graph, GPU Filters)
@@ -575,7 +591,24 @@ This validates at compile time that the modules are valid `Dala.Screen` modules.
 
 **Rule**: Media modules use the GPU surface for rendering. See `guides/media_runtime.md` for the complete media runtime documentation.
 
-### 31. Permission Management
+### 32. File Transfer Between Dev Machine and Devices
+
+**Problem**: Developers need to move files to/from devices — fixtures, configs, assets, logs, databases — without rebuilding the app.
+
+**Solution**: `DalaDev.FileTransfer` provides four operations across all platforms:
+
+- **`push/3`** — copies a local file or directory to the device. On Android, folders are staged as tar archives (avoids per-file adb overhead and preserves SELinux context). On iOS Simulator, files are written directly to the app's Documents directory on the host filesystem. On iOS Physical, `xcrun devicectl` handles the transfer.
+- **`pull/3`** — copies a remote file or directory to the local machine. Uses the same tar staging approach on Android for directories.
+- **`sync/3`** — bidirectional directory synchronization. Compares local and remote file trees by size and mtime, then pushes new/changed local files, pulls new/changed remote files, and optionally deletes remote files not present locally. Ideal for keeping fixture directories or asset folders in sync.
+- **`ls/2`** — lists files in a remote directory.
+
+All operations support `--on_conflict` (`overwrite`, `skip`, `rename`) and `--progress` flags.
+
+**Gotcha — Android non-rooted pull**: Pulling files from a non-rooted device requires copying from the app sandbox to `/data/local/tmp/` via `run-as`, then `adb pull` from there. The staging file is cleaned up in an `after` block to avoid leaking temp files on the device.
+
+**Gotcha — iOS Physical delete**: `xcrun devicectl` does not support deleting files from the app container. The `sync` delete action logs a warning on iOS Physical rather than failing silently.
+
+### 33. Permission Management
 
 **Problem**: iOS and Android require runtime permission requests for device capabilities.
 
@@ -661,6 +694,14 @@ Many of these functions contain parsing logic or platform-specific narrowing log
 - `DalaDev.HotPush.snapshot_beams/0` — Snapshots current BEAM files
 - `DalaDev.HotPush.push_changed/2` — Pushes only changed BEAM files
 
+### File Transfer
+
+**File transfer utilities**:
+- `DalaDev.FileTransfer.push/3` — Push file or directory to devices
+- `DalaDev.FileTransfer.pull/3` — Pull file or directory from device
+- `DalaDev.FileTransfer.sync/3` — Bidirectional directory sync with delete support
+- `DalaDev.FileTransfer.ls/2` — List files on device
+
 ### Configuration
 
 **Config utilities**:
@@ -729,12 +770,14 @@ Many of these functions contain parsing logic or platform-specific narrowing log
 When writing new code in dala_dev that references dala internals, use the **new sub-namespace paths** (not the facade names). Key modules and their locations:
 
 **Core**:
-- `Dala` — main facade (`lib/dala.ex`)
-- `Dala.App` — app facade → `Dala.App.App` (`lib/dala/app/app.ex`)
-- `Dala.Screen` — screen facade → `Dala.Screen.Screen` (`lib/dala/screen/screen.ex`)
-- `Dala.Socket` — socket facade → `Dala.Ui.Socket` (`lib/dala/ui/socket.ex`)
-- `Dala.Renderer` — renderer facade → `Dala.Ui.Renderer` (`lib/dala/ui/renderer.ex`)
-- `Dala.Node` — node struct (`lib/dala/node.ex`)
+- `Dala` — main facade (`lib/dala.ex`), delegates `assign/2` and `assign/3` to `Dala.Socket`
+- `Dala.App` — app facade (`lib/dala/app.ex`), delegates to `Dala.App.App` (`lib/dala/app/app.ex`)
+- `Dala.Screen` — screen facade (`lib/dala/screen.ex`), delegates to `Dala.Screen.Screen` (`lib/dala/screen/screen.ex`)
+- `Dala.Socket` — socket struct + API (`lib/dala/socket.ex`); `Dala.Ui.Socket` is a deprecated type alias
+- `Dala.Renderer` — renderer facade (`lib/dala/renderer.ex`), delegates to `Dala.Ui.Renderer` (`lib/dala/ui/renderer.ex`)
+- `Dala.Node` — node struct (`lib/dala/node.ex`), includes `stable_id/1`, `init_id_cache/0`, `compute_layout_hash/1`, `from_map/2`, `to_map/1`
+- `Dala.Test` — testing facade (`lib/dala/test.ex`), delegates to `Dala.Test.Test` (`lib/dala/test/test.ex`)
+- `Dala.ML` — ML facade (`lib/dala/ml.ex`), delegates to `Dala.Ml.Ml` (`lib/dala/ml/ml.ex`)
 
 **UI**:
 - `Dala.Ui.Widgets` — declarative UI components (`lib/dala/ui/widgets.ex`)
@@ -748,6 +791,9 @@ When writing new code in dala_dev that references dala internals, use the **new 
 - `Dala.Ui.List` — list rendering (`lib/dala/ui/list.ex`)
 - `Dala.Ui.Style` — styling (`lib/dala/ui/style.ex`)
 - `Dala.Ui.Renderer` — binary protocol renderer (`lib/dala/ui/renderer.ex`)
+- `Dala.Ui.Component` — component registry (`lib/dala/ui/component.ex`)
+- `Dala.Ui.Scan` — scan UI (`lib/dala/ui/scan.ex`)
+- `Dala.Ui.GpuCanvas` — GPU canvas (`lib/dala/ui/gpu_canvas.ex`)
 
 **Navigation**:
 - `Dala.Nav.Registry` — navigation registry (`lib/dala/nav/registry.ex`)
@@ -759,6 +805,7 @@ When writing new code in dala_dev that references dala internals, use the **new 
 - `Dala.Hardware.Scanner` — barcode/QR scanner (`lib/dala/hardware/scanner.ex`)
 - `Dala.Hardware.Biometric` — biometrics (`lib/dala/hardware/biometric.ex`)
 - `Dala.Hardware.Wakelock` — screen wakelock (`lib/dala/hardware/wakelock.ex`)
+- `Dala.Hardware.Nfc` — NFC (`lib/dala/hardware/nfc.ex`)
 - `Dala.Media.Camera` — camera (`lib/dala/media/camera.ex`)
 - `Dala.Media.Audio` — audio (`lib/dala/media/audio.ex`)
 - `Dala.Media.Photos` — photo library (`lib/dala/media/photos.ex`)
@@ -799,11 +846,14 @@ When writing new code in dala_dev that references dala internals, use the **new 
 - `Dala.Platform.Notify` — push notifications (`lib/dala/platform/notify.ex`)
 - `Dala.Platform.Diag` — diagnostics (`lib/dala/platform/diag.ex`)
 - `Dala.Platform.Permissions` — permissions (`lib/dala/platform/permissions.ex`)
+- `Dala.Platform.LiveView` — LiveView support (`lib/dala/platform/live_view.ex`)
 
 **Storage**:
 - `Dala.Storage.Storage` — file storage (`lib/dala/storage/storage.ex`)
 - `Dala.Storage.Blob` — binary blobs (`lib/dala/storage/blob.ex`)
 - `Dala.Storage.Files` — file operations (`lib/dala/storage/files.ex`)
+- `Dala.Storage.Android` — Android storage (`lib/dala/storage/android.ex`)
+- `Dala.Storage.Apple` — Apple storage (`lib/dala/storage/apple.ex`)
 
 **Events**:
 - `Dala.Event.Event` — unified events (`lib/dala/event/event.ex`)
@@ -811,6 +861,8 @@ When writing new code in dala_dev that references dala internals, use the **new 
 - `Dala.Event.Throttle` — event throttling (`lib/dala/event/throttle.ex`)
 - `Dala.Event.Trace` — event tracing for debugging (`lib/dala/event/trace.ex`)
 - `Dala.Event.Target` — event target (`lib/dala/event/target.ex`)
+- `Dala.Event.Address` — event addressing (`lib/dala/event/address.ex`)
+- `Dala.Event.Component` — component-level events (`lib/dala/event/component.ex`)
 
 **Testing**:
 - `Dala.Test.Test` — testing facade implementation (`lib/dala/test/test.ex`)
@@ -823,6 +875,7 @@ When writing new code in dala_dev that references dala internals, use the **new 
 - `Dala.Plugin.Registry` — plugin registry (`lib/dala/plugin/registry.ex`)
 - `Dala.Plugin.Protocol` — protocol generation (`lib/dala/plugin/protocol.ex`)
 - `Dala.Plugin.Manifest` — manifest generation (`lib/dala/plugin/manifest.ex`)
+- `Dala.Plugin.Event` — typed event definitions (`lib/dala/plugin/event.ex`)
 
 **ML**:
 - `Dala.ML` — ML facade (`lib/dala/ml.ex`)
@@ -831,22 +884,36 @@ When writing new code in dala_dev that references dala internals, use the **new 
 - `Dala.ML.CoreML` — iOS CoreML bridge (`lib/dala/ml/coreml.ex`)
 - `Dala.ML.ONNX` — ONNX Runtime bridge (`lib/dala/ml/onnx.ex`)
 - `Dala.Ml.Nx` — Nx tensor helpers (`lib/dala/ml/nx.ex`)
+- `Dala.Ml.Burn` — Burn ML framework (`lib/dala/ml/burn.ex`)
+- `Dala.Ml.ConfigHelper` — ML config helper (`lib/dala/ml/config_helper.ex`)
+- `Dala.Ml.Debug` — ML debug utilities (`lib/dala/ml/debug.ex`)
+- `Dala.Ml.Example` — ML examples (`lib/dala/ml/example.ex`)
+- `Dala.Ml.Model` — ML model management (`lib/dala/ml/model.ex`)
+- `Dala.Ml.Preprocess` — ML preprocessing (`lib/dala/ml/preprocess.ex`)
+- `Dala.Ml.Training` — ML training (`lib/dala/ml/training.ex`)
 
 **GPU**:
 - `Dala.Gpu` — GPU surface rendering (`lib/dala/gpu.ex`)
 - `Dala.Gpu.Command` — GPU render commands (`lib/dala/gpu/command.ex`)
 - `Dala.Gpu.Surface` — GPU surface GenServer (`lib/dala/gpu/surface.ex`)
 - `Dala.Gpu.Shader` — GPU shader management (`lib/dala/gpu/shader.ex`)
+- `Dala.Gpu.Compute` — GPU compute shaders (`lib/dala/gpu/compute.ex`)
+- `Dala.Gpu.Native` — native GPU interface (`lib/dala/gpu/native.ex`)
 - `native/dala_gpu/` — Rust GPU render backend
 
 **Spark DSL**:
 - `Dala.Spark.Dsl` — screen DSL (`lib/dala/spark/dsl.ex`)
+- `Dala.Spark.PubSub` — Spark PubSub (`lib/dala/spark/pubsub.ex`)
 
 **Theme**:
 - `Dala.Theme` — theme facade (`lib/dala/theme.ex`)
 - `Dala.Theme.Obsidian` — dark violet theme (`lib/dala/theme/obsidian.ex`)
 - `Dala.Theme.Citrus` — warm charcoal + lime theme (`lib/dala/theme/citrus.ex`)
 - `Dala.Theme.Birch` — warm parchment theme (`lib/dala/theme/birch.ex`)
+- `Dala.Theme.Dark` — dark theme (`lib/dala/theme/dark.ex`)
+- `Dala.Theme.Light` — light theme (`lib/dala/theme/light.ex`)
+- `Dala.Theme.Adaptive` — adaptive theme (`lib/dala/theme/adaptive.ex`)
+- `Dala.Theme.AdaptiveWatcher` — adaptive theme watcher (`lib/dala/theme/adaptive_watcher.ex`)
 
 **Dev-only**:
 - `Dala.Preview` — UI preview/designer (`dev_tools/dala/preview.ex`)
@@ -947,6 +1014,12 @@ When writing new code in dala_dev that references dala internals, use the **new 
 **Battery benchmarking**:
 - `lib/mix/tasks/dala.battery_bench_android.ex` — Android battery bench
 - `lib/mix/tasks/dala.battery_bench_ios.ex` — iOS battery bench
+
+**File transfer**:
+- `lib/mix/tasks/dala.push_file.ex` — `mix dala.push_file` for pushing files/folders
+- `lib/mix/tasks/dala.pull_file.ex` — `mix dala.pull_file` for pulling files/folders
+- `lib/mix/tasks/dala.sync.ex` — `mix dala.sync` for bidirectional directory sync
+- `lib/mix/tasks/dala.file_ls.ex` — `mix dala.file_ls` for listing remote files
 
 ### Development Server
 
