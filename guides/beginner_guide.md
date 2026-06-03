@@ -66,7 +66,7 @@ my_first_app/
 ├── lib/
 │   └── my_first_app/
 │       ├── application.ex      # App entry point
-│       └── home_screen.ex      # Dala screen (UI + events)
+│       └── home_screen.ex      # Dala screen (Spark DSL)
 ├── config/
 │   └── config.exs
 ├── dala.exs                   # dala configuration
@@ -75,7 +75,7 @@ my_first_app/
 
 ### Understanding the Structure
 
-- **Screen modules** (`lib/my_first_app/`) - Define the UI and handle events
+- **Screen modules** (`lib/my_first_app/`) - Define the UI declaratively using the Spark DSL and handle events
 - **dala.exs** - Configuration for mobile deployment
 - **mix.exs** - Standard Elixir project configuration
 
@@ -209,10 +209,43 @@ You should see your app launch on the device!
 
 The default app shows:
 - A welcome message
-- A counter button (LiveView in action!)
+- A counter button with tap handling
 - Basic navigation
 
-Tap the button - the counter updates instantly. That's LiveView working on your phone!
+Tap the button — the counter updates instantly. That's Dala's reactive screen system working on your phone!
+
+The generated `home_screen.ex` uses the **Spark DSL** for a declarative UI:
+
+```elixir
+defmodule MyFirstApp.HomeScreen do
+  use Dala.Spark.Dsl
+
+  attributes do
+    attribute :count, :integer, default: 0
+  end
+
+  screen name: :home do
+    column do
+      padding :space_md
+      gap :space_md
+      text "Welcome to dala!"
+      text "Count: @count", text_size: :xl
+      button "Increment", on_tap: :increment
+    end
+  end
+
+  def handle_event(:increment, _params, socket) do
+    {:noreply, Dala.Socket.assign(socket, :count, socket.assigns.count + 1)}
+  end
+end
+```
+
+Key things to notice:
+- `use Dala.Spark.Dsl` enables the declarative DSL
+- `attributes do ... end` declares screen state with types and defaults
+- `screen do ... end` defines the UI tree using components like `column`, `text`, and `button`
+- `@count` in a string automatically references the `:count` assign value
+- `handle_event/3` handles events from `on_tap` and similar props
 
 ## Step 5: Make Your First Change
 
@@ -232,21 +265,25 @@ mix dala.watch --device <device_id>
 
 ### Make a Change
 
-Open `lib/my_first_app/live/home_live.ex` in your editor and find the render function. Change some text:
+Open `lib/my_first_app/home_screen.ex` in your editor. The screen is defined using the Spark DSL — change the text string inside the `text` component:
 
 ```elixir
 # Before
-def render(assigns) do
-  ~H"""
-  <Text>Welcome to dala!</Text>
-  """
+screen name: :home do
+  column do
+    padding :space_md
+    gap :space_md
+    text "Welcome to dala!"
+  end
 end
 
 # After
-def render(assigns) do
-  ~H"""
-  <Text>Hello from my first dala app!</Text>
-  """
+screen name: :home do
+  column do
+    padding :space_md
+    gap :space_md
+    text "Hello from my first dala app!"
+  end
 end
 ```
 
@@ -360,10 +397,10 @@ You'll get an IEx prompt running **on the device**:
 ```elixir
 # Now you're in IEx on the phone!
 # Inspect app state
-:sys.get_status(MyFirstApp.Live.HomeLive)
+:sys.get_status(MyApp.HomeScreen)
 
 # Call functions
-MyFirstApp.some_function()
+MyApp.some_function()
 
 # Exit with Ctrl+C twice
 ```
@@ -475,7 +512,7 @@ mix dala.publish             # Upload to stores
 
 Congratulations! You've built and deployed your first dala mobile app. Here's what to explore next:
 
-1. **Learn LiveView** - The UI framework (see `dala` documentation)
+1. **Learn Dala Screens** - The UI framework with `Dala.Screen` and the Spark DSL (see `dala` documentation)
 2. **Explore Native Features** - Camera, GPS, notifications (`mix dala.enable --list`)
 3. **Read Development Workflow** - [development_workflow.md](development_workflow.md)
 4. **Prepare for Release** - [release_and_packaging.md](release_and_packaging.md)
