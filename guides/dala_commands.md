@@ -573,9 +573,7 @@ mix dala.release --android
 
 #### Options
 
-- `--ios` — Build iOS release only
-- `--android` — Build Android release only
-- `--distribution` — Build for App Store distribution (requires paid developer account)
+- No options — builds signed .ipa for the configured signing identity and provisioning profile
 
 ---
 
@@ -589,14 +587,11 @@ Builds a signed Android release APK or Android App Bundle (AAB) for Play Store d
 
 ```bash
 mix dala.release.android
-mix dala.release.android --aab   # build AAB instead of APK
 ```
 
 #### Options
 
-- `--aab` — Build Android App Bundle instead of APK
-- `--skip-zipalign` — Skip ZIP alignment step
-- `--skip-sign` — Skip signing (for testing only)
+- No options — builds signed .aab for the configured signing identity
 
 #### Under the Hood
 
@@ -618,8 +613,6 @@ Publishes your built release to the App Store or Play Store.
 
 ```bash
 mix dala.publish
-mix dala.publish --ios
-mix dala.publish --android
 ```
 
 ---
@@ -642,6 +635,8 @@ mix dala.publish.android --track production
 
 - `--track TRACK` — Release track (internal, alpha, beta, production)
 
+Note: Requires Google Play service account JSON configured in `dala.exs`.
+
 ---
 
 ## Development Tools
@@ -656,13 +651,14 @@ Watches your Elixir source files and automatically deploys changes to connected 
 
 ```bash
 mix dala.watch
-mix dala.watch --platform android
+mix dala.watch --debounce 500
 ```
 
 #### Options
 
-- `--platform <platform>` — Watch only for specific platform (android/ios)
-- `--no-restart` — Push BEAMs but don't restart the app
+- `--cookie <cookie>` — Erlang cookie (default: `dala_secret`)
+- `--debounce <ms>` — ms to wait after a change before compiling (default: 300)
+- `--interval <ms>` — ms between file-change polls (default: 500)
 
 ---
 
@@ -704,15 +700,15 @@ mix dala.logs --follow
 
 ### mix dala.screen
 
-**Short description**: Mirror device screen
+**Short description**: Capture screenshots and record video from devices
 
-Mirrors the device screen to your computer (requires additional tools like `scrcpy` for Android).
+Takes screenshots or records video from connected devices.
 
 #### Usage
 
 ```bash
-mix dala.screen
-mix dala.screen --device <id>
+mix dala.screen screenshot --device <id> --output screen.png
+mix dala.screen record --device <id> --output demo.mp4 --duration 30
 ```
 
 ---
@@ -764,15 +760,14 @@ mix dala.debug --iex
 
 ### mix dala.web
 
-**Short description**: Open web dashboard in browser
+**Short description**: Start comprehensive web UI for all dala_dev features
 
-Opens the Dala dev server dashboard in your default browser.
+Starts the full web UI with device management, deployment controls, log streaming, cluster visualization, and design tools.
 
 #### Usage
 
 ```bash
 mix dala.web
-mix dala.web --url http://localhost:4040
 ```
 
 ---
@@ -781,37 +776,37 @@ mix dala.web --url http://localhost:4040
 
 ### mix dala.cache
 
-**Short description**: Manage OTP cache
+**Short description**: Show or clear machine-wide caches
 
-Downloads and caches pre-built OTP tarballs for mobile platforms.
+Shows cached OTP runtimes and other cached data, or clears them to force re-download.
 
 #### Usage
 
 ```bash
-mix dala.cache
-mix dala.cache --clear
-mix dala.cache --platform ios
+mix dala.cache          # show cache info
+mix dala.cache --clear  # clear all caches
 ```
 
 #### Options
 
-- `--clear` — Clear cached OTP tarballs
-- `--platform <platform>` — Cache only specific platform (android/ios)
+- `--clear` — Clear all cached data
 
 ---
 
 ### mix dala.enable
 
-**Short description**: Enable dala in an existing project
+**Short description**: Enable optional Dala features
 
-Adds dala configuration and dependencies to an existing Elixir project.
+Enables optional native features like camera, photo library, location, etc. Updates `dala.exs` with required permissions and adds necessary native code.
 
 #### Usage
 
 ```bash
-mix dala.enable
-mix dala.enable --ios
-mix dala.enable --android
+mix dala.enable --list          # show available features
+mix dala.enable camera          # enable camera
+mix dala.enable photo_library   # enable photo library
+mix dala.enable location        # enable location services
+mix dala.enable liveview        # enable LiveView mode
 ```
 
 ---
@@ -826,7 +821,6 @@ Generates app icons in all required sizes for Android and iOS from a source imag
 
 ```bash
 mix dala.icon path/to/icon.png
-mix dala.icon path/to/icon.png --platform ios
 ```
 
 ---
@@ -877,30 +871,29 @@ mix dala.gen.live_screen MyScreen
 
 ### mix dala.install
 
-**Short description**: Install dala dependencies
+**Short description**: First-run setup
 
-Installs all required dependencies for dala development (adb, xcrun, etc.).
+Downloads OTP runtime, generates icons, writes `dala.exs`. Run once per project.
 
 #### Usage
 
 ```bash
 mix dala.install
-mix dala.install --tool adb
 ```
 
 ---
 
 ### mix dala.push
 
-**Short description**: Push files to device
+**Short description**: Hot-push changed BEAM files to device
 
-Pushes arbitrary files to connected devices via adb or simctl.
+Pushes only changed BEAM modules to connected devices via Erlang distribution (no restart required). This is the primary day-to-day development command for quick iteration.
 
 #### Usage
 
 ```bash
-mix dala.push path/to/file.txt
-mix dala.push path/to/dir --device <id>
+mix dala.push
+mix dala.push --device <id>
 ```
 
 ---
@@ -918,10 +911,10 @@ mix dala.push path/to/dir --device <id>
 | `mix dala.provision` | iOS provisioning | `--distribution` |
 | `mix dala.battery_bench_android` | Android battery bench | `--duration`, `--preset`, `--no-build` |
 | `mix dala.battery_bench_ios` | iOS battery bench | `--duration`, `--wifi-ip`, `--no-build` |
-| `mix dala.release` | Build release | `--ios`, `--android`, `--distribution` |
-| `mix dala.watch` | Auto-deploy on file change | `--platform` |
+| `mix dala.release` | Build iOS release | — |
+| `mix dala.watch` | Auto-deploy on file change | `--cookie`, `--debounce` |
 | `mix dala.logs` | Stream device logs | `--device`, `--follow` |
-| `mix dala.cache` | Manage OTP cache | `--clear`, `--platform` |
+| `mix dala.cache` | Show or clear caches | `--clear` |
 
 ---
 

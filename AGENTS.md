@@ -11,7 +11,7 @@ You're in **dala_dev**, the build/deploy/devices toolkit for the dala ecosystem.
 
 **Important**: Read [`~/code/dala/docs/reference/AGENTS.md`](../dala/docs/reference/AGENTS.md) first for the system-wide view, the three-repo topology (dala, dala_dev, dala_new), and the cross-cutting pre-empt-failure rules that apply across all repositories. The notes below are dala_dev-specific conventions and gotchas.
 
-**Dala v0.6.x** introduces a plugin architecture where Dala core knows almost nothing — plugins self-describe through schema, commands, and native capabilities. See the `Dala.Plugin` section below. New in this version: GPU render surface, media runtime (video, scene graph, GPU filters), ML stack (Nx, EMLX, CoreML, ONNX, Burn), expanded platform APIs (Clipboard, Share, Location, Notify, Diag, PubSub, Registry, Permissions, LiveView), NFC, screen manager, adaptive theming, and a comprehensive two-layer testing model (render tree + native UI).
+**Dala v0.7.x** introduces a plugin architecture where Dala core knows almost nothing — plugins self-describe through schema, commands, and native capabilities. See the `Dala.Plugin` section below. New in this version: GPU render surface with compute shaders, media runtime (video, scene graph, GPU filters, GPU processor), ML stack (Nx, EMLX, CoreML, ONNX, Burn with serving/training, GPU inference), expanded platform APIs (Clipboard, Share, Location, Notify, Diag, PubSub, Registry, Permissions, LiveView), NFC, screen manager, adaptive theming, a comprehensive two-layer testing model (render tree + native UI), Spark DSL with transformers, and new facade modules (Dala.Component, Dala.ComponentServer, Dala.ComponentRegistry, Dala.Diff, Dala.List, Dala.Event, Dala.PubSub, Dala.Native NIF fallbacks).
 
 ## What this repo is
 
@@ -340,8 +340,8 @@ adb forward tcp:9100 tcp:9100   # dist:  Mac → device
 - `Dala.Socket` — socket struct + API (`lib/dala/socket.ex`); `Dala.Ui.Socket` is a deprecated type alias
 - `Dala.Renderer` — renderer facade (`lib/dala/renderer.ex`), delegates to `Dala.Ui.Renderer` (`lib/dala/ui/renderer.ex`)
 - `Dala.Node` — node struct (`lib/dala/node.ex`), includes `stable_id/1`, `init_id_cache/0`, `compute_layout_hash/1`, `from_map/2`, `to_map/1`
-- `Dala.Test` — testing facade (`lib/dala/test.ex`), delegates to `Dala.Test.Test` (`lib/dala/test/test.ex`)
-- `Dala.ML` — ML facade (`lib/dala/ml.ex`), delegates to `Dala.Ml.Ml` (`lib/dala/ml/ml.ex`)
+- `Dala.Test` — testing helpers (`lib/dala/test.ex`), implementation directly in the facade module (no `Dala.Test.Test` sub-module)
+- `Dala.ML` — ML facade (`lib/dala/ml.ex`), implementation directly in the facade module (no `Dala.Ml.Ml` sub-module)
 - `Dala.Component` → `Dala.Ui.NativeView`
 - `Dala.ComponentServer` → `Dala.Ui.NativeView.Server`
 - `Dala.ComponentRegistry` → `Dala.Ui.NativeView.Registry`
@@ -398,12 +398,20 @@ adb forward tcp:9100 tcp:9100   # dist:  Mac → device
 
 **New facade modules** (top-level, delegate to sub-namespaces):
 - `Dala` — main facade, delegates `assign/2` and `assign/3` to `Dala.Socket`
-- `Dala.ML` — ML facade, delegates to `Dala.Ml.Ml` (implementation at `lib/dala/ml/ml.ex`)
-- `Dala.Test` — testing facade, delegates to `Dala.Test.Test` (implementation at `lib/dala/test/test.ex`)
+- `Dala.ML` — ML facade, implementation directly in the facade module (no `Dala.Ml.Ml` sub-module)
+- `Dala.Test` — testing facade, implementation directly in the facade module (no `Dala.Test.Test` sub-module)
 - `Dala.App` — app facade, delegates to `Dala.App.App` (implementation at `lib/dala/app/app.ex`)
 - `Dala.Screen` — screen facade, delegates to `Dala.Screen.Screen` (implementation at `lib/dala/screen/screen.ex`)
 - `Dala.Renderer` — renderer facade, delegates to `Dala.Ui.Renderer`
 - `Dala.Plugin` — plugin facade, delegates to `Dala.Plugin` (struct + behaviour, unchanged)
+- `Dala.Component` — component facade (`lib/dala/component.ex`), delegates to `Dala.Ui.NativeView`
+- `Dala.ComponentServer` — component server facade (`lib/dala/component_server.ex`), delegates to `Dala.Ui.NativeView.Server`
+- `Dala.ComponentRegistry` — component registry facade (`lib/dala/component_registry.ex`), delegates to `Dala.Ui.NativeView.Registry`
+- `Dala.Diff` — diff engine facade (`lib/dala/diff.ex`), delegates to `Dala.Ui.Diff`
+- `Dala.List` — list rendering facade (`lib/dala/list.ex`), delegates to `Dala.Ui.List`
+- `Dala.Event` — unified event facade (`lib/dala/event.ex`), delegates to `Dala.Event.Event`
+- `Dala.PubSub` — PubSub facade (`lib/dala/pubsub.ex`), delegates to `Dala.Platform.PubSub`
+- `Dala.Native` — platform-native NIF fallback implementations (`lib/dala/native.ex`), provides fallback implementations for CoreML and ONNX NIF functions that return `:not_supported` on non-mobile platforms
 
 **Rule**: When writing new code in dala_dev that references dala internals, use the new sub-namespace paths. When generating code for user projects (templates), use the facade names.
 
@@ -537,6 +545,7 @@ ONNX NIFs are also dirty CPU scheduled and available on both iOS and Android.
 - **Accessibility tree** (`ui_tree/1`) — OS accessibility tree (requires AX activation on iOS)
 
 **Navigation helpers** (synchronous): `pop/1`, `navigate/3`, `pop_to/2`, `pop_to_root/1`, `reset_to/3`
+**Interaction helpers**: `tap/2` (by tag), `back/1` (system back), `select/3` (list row)
 **Native UI helpers**: `tap_xy/3`, `type_text/2`, `swipe/5`, `ax_action/3`, `ax_action_at_xy/4`, `toggle/2`, `adjust_slider/4`, `dismiss_alert/2`, `long_press_xy/4`, `delete_backward/1`, `key_press/2`, `clear_text/1`
 **WebView helpers**: `webview_eval/2`, `webview_tap/3`, `webview_type/3`, `webview_navigate/2`, `webview_reload/1`, `webview_stop_loading/1`, `webview_go_forward/1`, `webview_clear/2`, `webview_screenshot/1`, `webview_post_message/2`
 **Inspection helpers**: `screen/1`, `assigns/1`, `inspect/1`, `screen_info/1`, `view_tree_flat/1`, `flatten_tree/1`, `find_native/2`, `wait_for/3`, `wait_for_text/3`
@@ -569,7 +578,7 @@ This validates at compile time that the modules are valid `Dala.Screen` modules.
 - `Dala.Gpu.dispatch_compute/4` — dispatch GPU compute shaders
 - `Dala.Gpu.with_pixels/2` — direct pixel access via callback
 
-**Sub-modules**: `Dala.Gpu.Command` (render commands), `Dala.Gpu.Surface` (GenServer), `Dala.Gpu.Shader` (shader management), `Dala.Gpu.Compute` (compute shaders), `Dala.Gpu.Native` (native GPU interface)
+**Sub-modules**: `Dala.Gpu.Command` (render commands), `Dala.Gpu.Surface` (GenServer), `Dala.Gpu.Compute` (compute shaders), `Dala.Gpu.Compute.Buffer` (compute buffer), `Dala.Gpu.Compute.Kernel` (compute kernel), `Dala.Gpu.Compute.Pipeline` (compute pipeline), `Dala.Gpu.Native` (native GPU interface)
 
 **Use cases**: Custom canvas rendering, ML tensor visualization, game-like rendering, video processing, shader effects.
 
@@ -619,7 +628,7 @@ All operations support `--on_conflict` (`overwrite`, `skip`, `rename`) and `--pr
 - `Dala.Permissions.ios_plist_key/1` — returns the iOS plist key for a permission
 - `Dala.Permissions.android_permission/1` — returns the Android permission string
 
-**Supported permissions**: `:camera`, `:microphone`, `:bluetooth`, `:location`, `:storage`, `:photos`, `:contacts`, `:notifications`
+**Supported permissions**: `:camera`, `:microphone`, `:bluetooth`, `:location`, `:storage`, `:photos`, `:contacts`, `:notifications`, `:nfc`
 
 **Rule**: Always request permissions before using the corresponding device API. Use `Dala.Permissions` rather than platform-specific permission code.
 
@@ -776,8 +785,16 @@ When writing new code in dala_dev that references dala internals, use the **new 
 - `Dala.Socket` — socket struct + API (`lib/dala/socket.ex`); `Dala.Ui.Socket` is a deprecated type alias
 - `Dala.Renderer` — renderer facade (`lib/dala/renderer.ex`), delegates to `Dala.Ui.Renderer` (`lib/dala/ui/renderer.ex`)
 - `Dala.Node` — node struct (`lib/dala/node.ex`), includes `stable_id/1`, `init_id_cache/0`, `compute_layout_hash/1`, `from_map/2`, `to_map/1`
-- `Dala.Test` — testing facade (`lib/dala/test.ex`), delegates to `Dala.Test.Test` (`lib/dala/test/test.ex`)
-- `Dala.ML` — ML facade (`lib/dala/ml.ex`), delegates to `Dala.Ml.Ml` (`lib/dala/ml/ml.ex`)
+- `Dala.Test` — testing helpers (`lib/dala/test.ex`), implementation directly in the facade module (no `Dala.Test.Test` sub-module)
+- `Dala.ML` — ML facade (`lib/dala/ml.ex`), implementation directly in the facade module (no `Dala.Ml.Ml` sub-module)
+- `Dala.Component` — component facade (`lib/dala/component.ex`), delegates to `Dala.Ui.NativeView`
+- `Dala.ComponentServer` — component server facade (`lib/dala/component_server.ex`), delegates to `Dala.Ui.NativeView.Server`
+- `Dala.ComponentRegistry` — component registry facade (`lib/dala/component_registry.ex`), delegates to `Dala.Ui.NativeView.Registry`
+- `Dala.Diff` — diff engine facade (`lib/dala/diff.ex`), delegates to `Dala.Ui.Diff`
+- `Dala.List` — list rendering facade (`lib/dala/list.ex`), delegates to `Dala.Ui.List`
+- `Dala.Event` — unified event facade (`lib/dala/event.ex`), delegates to `Dala.Event.Event`
+- `Dala.PubSub` — PubSub facade (`lib/dala/pubsub.ex`), delegates to `Dala.Platform.PubSub`
+- `Dala.Native` — platform-native NIF fallback implementations (`lib/dala/native.ex`), provides fallback implementations for CoreML and ONNX NIF functions that return `:not_supported` on non-mobile platforms
 
 **UI**:
 - `Dala.Ui.Widgets` — declarative UI components (`lib/dala/ui/widgets.ex`)
@@ -819,6 +836,7 @@ When writing new code in dala_dev that references dala internals, use the **new 
 - `Dala.Media.Animation` — animations (`lib/dala/media/animation.ex`)
 - `Dala.Media.Clock` — media clock (`lib/dala/media/clock.ex`)
 - `Dala.Media.Subtitle` — subtitles (`lib/dala/media/subtitle.ex`)
+- `Dala.Media.Gpu.Processor` — GPU media processor (`lib/dala/media/gpu/processor.ex`)
 - `Dala.Connectivity.Dist` — Erlang distribution (`lib/dala/connectivity/dist.ex`)
 - `Dala.Connectivity.Wifi` — WiFi (`lib/dala/connectivity/wifi.ex`)
 - `Dala.Permissions` — permission management (`lib/dala/permissions.ex`)
@@ -865,7 +883,7 @@ When writing new code in dala_dev that references dala internals, use the **new 
 - `Dala.Event.Component` — component-level events (`lib/dala/event/component.ex`)
 
 **Testing**:
-- `Dala.Test.Test` — testing facade implementation (`lib/dala/test/test.ex`)
+- `Dala.Test` — testing helpers, implementation directly at `lib/dala/test.ex` (no sub-module)
 
 **Plugins**:
 - `Dala.Plugin` — plugin behaviour + DSL (`lib/dala/plugin.ex`)
@@ -878,32 +896,41 @@ When writing new code in dala_dev that references dala internals, use the **new 
 - `Dala.Plugin.Event` — typed event definitions (`lib/dala/plugin/event.ex`)
 
 **ML**:
-- `Dala.ML` — ML facade (`lib/dala/ml.ex`)
-- `Dala.Ml.Ml` — ML facade implementation (`lib/dala/ml/ml.ex`)
+- `Dala.ML` — ML facade (`lib/dala/ml.ex`), implementation directly in the facade module (no `Dala.Ml.Ml` sub-module)
 - `Dala.ML.EMLX` — Apple Silicon GPU backend (`lib/dala/ml/emlx.ex`)
 - `Dala.ML.CoreML` — iOS CoreML bridge (`lib/dala/ml/coreml.ex`)
 - `Dala.ML.ONNX` — ONNX Runtime bridge (`lib/dala/ml/onnx.ex`)
+- `Dala.ML.Gpu.Inference` — GPU ML inference (`lib/dala/ml/gpu/inference.ex`)
 - `Dala.Ml.Nx` — Nx tensor helpers (`lib/dala/ml/nx.ex`)
 - `Dala.Ml.Burn` — Burn ML framework (`lib/dala/ml/burn.ex`)
+- `Dala.Ml.Burn.Serving` — Burn model serving (`lib/dala/ml/burn/serving.ex`)
+- `Dala.Ml.Burn.Training` — Burn model training (`lib/dala/ml/burn/training.ex`)
 - `Dala.Ml.ConfigHelper` — ML config helper (`lib/dala/ml/config_helper.ex`)
 - `Dala.Ml.Debug` — ML debug utilities (`lib/dala/ml/debug.ex`)
 - `Dala.Ml.Example` — ML examples (`lib/dala/ml/example.ex`)
 - `Dala.Ml.Model` — ML model management (`lib/dala/ml/model.ex`)
 - `Dala.Ml.Preprocess` — ML preprocessing (`lib/dala/ml/preprocess.ex`)
-- `Dala.Ml.Training` — ML training (`lib/dala/ml/training.ex`)
+- `Dala.ML.Training` — ML training (`lib/dala/ml/training.ex`)
 
 **GPU**:
 - `Dala.Gpu` — GPU surface rendering (`lib/dala/gpu.ex`)
 - `Dala.Gpu.Command` — GPU render commands (`lib/dala/gpu/command.ex`)
 - `Dala.Gpu.Surface` — GPU surface GenServer (`lib/dala/gpu/surface.ex`)
-- `Dala.Gpu.Shader` — GPU shader management (`lib/dala/gpu/shader.ex`)
 - `Dala.Gpu.Compute` — GPU compute shaders (`lib/dala/gpu/compute.ex`)
+- `Dala.Gpu.Compute.Buffer` — GPU compute buffer (`lib/dala/gpu/compute/buffer.ex`)
+- `Dala.Gpu.Compute.Kernel` — GPU compute kernel (`lib/dala/gpu/compute/kernel.ex`)
+- `Dala.Gpu.Compute.Pipeline` — GPU compute pipeline (`lib/dala/gpu/compute/pipeline.ex`)
 - `Dala.Gpu.Native` — native GPU interface (`lib/dala/gpu/native.ex`)
 - `native/dala_gpu/` — Rust GPU render backend
 
 **Spark DSL**:
 - `Dala.Spark.Dsl` — screen DSL (`lib/dala/spark/dsl.ex`)
+- `Dala.Spark.Dsl.Entities` — Spark DSL entities (`lib/dala/spark/dsl/entities.ex`)
+- `Dala.Spark.Dsl.ScreenHelper` — Spark DSL screen helper (`lib/dala/spark/dsl/screen_helper.ex`)
 - `Dala.Spark.PubSub` — Spark PubSub (`lib/dala/spark/pubsub.ex`)
+- `Dala.Spark.Transformers.GenerateMount` — Spark mount generator transformer (`lib/dala/spark/transformers/generate_mount.ex`)
+- `Dala.Spark.Transformers.PubSub` — Spark PubSub transformer (`lib/dala/spark/transformers/pubsub.ex`)
+- `Dala.Spark.Transformers.Render` — Spark render transformer (`lib/dala/spark/transformers/render.ex`)
 
 **Theme**:
 - `Dala.Theme` — theme facade (`lib/dala/theme.ex`)

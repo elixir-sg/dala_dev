@@ -166,13 +166,10 @@ When your app crashes, analyze the crash dump:
 
 ```bash
 # Parse and summarize crash dump
-mix dala.crash_dump analyze <dump_file>
+mix dala.crash_dump <dump_file>
 
-# Generate HTML report
-mix dala.crash_dump report <dump_file> --output report.html
-
-# Open report in browser
-open report.html
+# Generate HTML report from parsed dump
+# (open the generated report in browser)
 ```
 
 ## Development Dashboard
@@ -238,8 +235,8 @@ mix dala.bench --duration 30
 # 3. Profile specific code paths
 mix dala.trace --modules MyApp.SlowModule
 
-# 4. Generate flame graph
-mix dala.profile --function "MyApp.SlowModule.slow_function/2"
+# 4. Profile specific code paths
+mix dala.trace --modules MyApp.SlowModule
 ```
 
 ## Device Management
@@ -299,10 +296,10 @@ See [Beginner Guide](beginner_guide.md#step-2-initial-setup-with-dala_dev) for i
 
 ```bash
 # View current dala.exs configuration
-mix dala.config show
+cat dala.exs
 
-# Validate configuration
-mix dala.config validate
+# Validate navigation routes
+mix dala.routes
 ```
 
 ### Cache Management

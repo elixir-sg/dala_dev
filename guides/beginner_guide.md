@@ -66,10 +66,7 @@ my_first_app/
 ├── lib/
 │   └── my_first_app/
 │       ├── application.ex      # App entry point
-│       ├── live/              # LiveView modules
-│       │   └── home_live.ex
-│       └── screens/           # Mobile screens
-│           └── home_screen.ex
+│       └── home_screen.ex      # Dala screen (UI + events)
 ├── config/
 │   └── config.exs
 ├── dala.exs                   # dala configuration
@@ -78,8 +75,7 @@ my_first_app/
 
 ### Understanding the Structure
 
-- **LiveView modules** (`lib/my_first_app/live/`) - Handle state and events
-- **Screen modules** (`lib/my_first_app/screens/`) - Define the UI
+- **Screen modules** (`lib/my_first_app/`) - Define the UI and handle events
 - **dala.exs** - Configuration for mobile deployment
 - **mix.exs** - Standard Elixir project configuration
 
@@ -390,11 +386,11 @@ When you're ready to share your app:
 
 ```bash
 # iOS - for registered devices
-mix dala.release --no-sign
+mix dala.release
 mix dala.deploy --device <ios_device>
 
 # Android - installable APK
-mix dala.release.android --apk
+mix dala.release.android
 adb install my_first_app.apk
 ```
 
@@ -403,11 +399,11 @@ adb install my_first_app.apk
 ```bash
 # iOS - App Store / TestFlight
 mix dala.release
-mix dala.publish --testflight
+mix dala.publish
 
 # Android - Google Play
 mix dala.release.android
-mix dala.publish.android --track beta
+mix dala.publish.android --track internal
 ```
 
 See the [Release and Packaging Guide](release_and_packaging.md) for details.

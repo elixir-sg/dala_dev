@@ -160,42 +160,54 @@ When upgrading OTP, you need to rebuild the pre-built tarballs that `DalaDev.Otp
 ### Core Modules
 
 **Device management**:
-- `lib/mob_dev/device.ex` — Device struct definition + `node_name/1`, `short_id/1`, `summary/1`
-- `lib/mob_dev/tunnel.ex` — ADB tunnel setup for device communication, `dist_port/1`
-- `lib/mob_dev/connector.ex` — Discovery → tunnel → restart → wait → connect workflow
-- `lib/mob_dev/config.ex` — Configuration handling (dala.exs), bundle ID resolution
-- `lib/mob_dev/paths.ex` — Path resolution for OTP runtimes, SDKs, and build artifacts
-- `lib/mob_dev/utils.ex` — Centralized utilities (regex compilation, ADB helpers, format_bytes)
-- `lib/mob_dev/error.ex` — Standardized error handling and formatting
+- `lib/dala_dev/device.ex` — Device struct definition + `node_name/1`, `short_id/1`, `summary/1`
+- `lib/dala_dev/tunnel.ex` — ADB tunnel setup for device communication, `dist_port/1`
+- `lib/dala_dev/connector.ex` — Discovery → tunnel → restart → wait → connect workflow
+- `lib/dala_dev/config.ex` — Configuration handling (dala.exs), bundle ID resolution
+- `lib/dala_dev/paths.ex` — Path resolution for OTP runtimes, SDKs, and build artifacts
+- `lib/dala_dev/utils.ex` — Centralized utilities (regex compilation, ADB helpers, format_bytes)
+- `lib/dala_dev/error.ex` — Standardized error handling and formatting
 
 **Deployment**:
-- `lib/mob_dev/deployer.ex` — Full BEAM push + app restart pipeline
-- `lib/mob_dev/hot_push.ex` — BEAM snapshot + RPC push for hot code reloading
-- `lib/mob_dev/native_build.ex` — APK/.app bundle building and signing
-- `lib/mob_dev/otp_downloader.ex` — Pre-built OTP runtime downloads and caching
+- `lib/dala_dev/deployer.ex` — Full BEAM push + app restart pipeline
+- `lib/dala_dev/hot_push.ex` — BEAM snapshot + RPC push for hot code reloading
+- `lib/dala_dev/native_build.ex` — APK/.app bundle building and signing
+- `lib/dala_dev/otp_downloader.ex` — Pre-built OTP runtime downloads and caching
 
 **Discovery**:
-- `lib/mob_dev/discovery/android.ex` — ADB device discovery and parsing
-- `lib/mob_dev/discovery/ios.ex` — xcrun simctl discovery and parsing
+- `lib/dala_dev/discovery/android.ex` — ADB device discovery and parsing
+- `lib/dala_dev/discovery/ios.ex` — xcrun simctl discovery and parsing
 
 **Observability**:
-- `lib/mob_dev/crash_dump.ex` — Crash dump parsing and HTML reports
-- `lib/mob_dev/debugger.ex` — Interactive remote debugging
-- `lib/mob_dev/observer.ex` — Web-based :observer for remote nodes
-- `lib/mob_dev/tracing.ex` — Distributed tracing infrastructure
-- `lib/mob_dev/profiling.ex` — Profiling and flame graph generation
-- `lib/mob_dev/log_collector.ex` — Log collection and streaming
-- `lib/mob_dev/screen_capture.ex` — Screenshot and video capture
-- `lib/mob_dev/network.ex` — Network diagnostics
-- `lib/mob_dev/network_diag.ex` — Network diagnostic utilities
+- `lib/dala_dev/crash_dump.ex` — Crash dump parsing and HTML reports
+- `lib/dala_dev/debugger.ex` — Interactive remote debugging
+- `lib/dala_dev/observer.ex` — Web-based :observer for remote nodes
+- `lib/dala_dev/tracing.ex` — Distributed tracing infrastructure
+- `lib/dala_dev/profiling.ex` — Profiling and flame graph generation
+- `lib/dala_dev/log_collector.ex` — Log collection and streaming
+- `lib/dala_dev/screen_capture.ex` — Screenshot and video capture
+- `lib/dala_dev/network.ex` — Network diagnostics
+- `lib/dala_dev/network_diag.ex` — Network diagnostic utilities
 
 **Other**:
-- `lib/mob_dev/emulators.ex` — Emulator lifecycle management
-- `lib/mob_dev/qr.ex` — QR code generation
-- `lib/mob_dev/release.ex` — Release build utilities
-- `lib/mob_dev/icon_generator.ex` — Icon generation for Android/iOS
-- `lib/mob_dev/enable.ex` — Feature enablement
-- `lib/mob_dev/benchmark.ex` — Performance benchmarking
+- `lib/dala_dev/emulators.ex` — Emulator lifecycle management
+- `lib/dala_dev/qr.ex` — QR code generation
+- `lib/dala_dev/release.ex` — Release build utilities
+- `lib/dala_dev/icon_generator.ex` — Icon generation for Android/iOS
+- `lib/dala_dev/enable.ex` — Feature enablement
+- `lib/dala_dev/benchmark.ex` — Performance benchmarking
+
+**File transfer**:
+- `lib/dala_dev/file_transfer.ex` — File/folder push, pull, sync, and ls for connected devices
+
+**Battery benchmarking**:
+- `lib/dala_dev/bench/device_observer.ex` — Subscribes to Dala.Device.Device events for ground-truth screen/app state
+- `lib/dala_dev/bench/probe.ex` — Device state snapshot (screen, app, memory, battery)
+- `lib/dala_dev/bench/preflight.ex` — Pre-flight checks before benchmark runs
+- `lib/dala_dev/bench/reconnector.ex` — Automatic node reconnection during long-running benches
+- `lib/dala_dev/bench/summary.ex` — Benchmark result summarization
+- `lib/dala_dev/bench/ADBHelper.ex` — ADB command helpers for bench
+- `lib/dala_dev/bench/logger.ex` — Bench-specific logging
 
 ### Mix Tasks (User-Facing Commands)
 
@@ -208,6 +220,7 @@ When upgrading OTP, you need to rebuild the pre-built tarballs that `DalaDev.Otp
 
 **Device management**:
 - `lib/mix/tasks/dala.devices.ex` — `mix dala.devices` for listing devices
+- `lib/mix/tasks/dala.emulators.ex` — `mix dala.emulators` for managing emulators/simulators
 - `lib/mix/tasks/dala.screen.ex` — `mix dala.screen` for screenshots/video
 
 **Build and release**:
@@ -235,18 +248,29 @@ When upgrading OTP, you need to rebuild the pre-built tarballs that `DalaDev.Otp
 - `lib/mix/tasks/dala.trace.ex` — `mix dala.trace` for distributed tracing
 - `lib/mix/tasks/dala.bench.ex` — `mix dala.bench` for performance benchmarks
 
+**File transfer**:
+- `lib/mix/tasks/dala.push_file.ex` — `mix dala.push_file` for pushing files/folders
+- `lib/mix/tasks/dala.pull_file.ex` — `mix dala.pull_file` for pulling files/folders
+- `lib/mix/tasks/dala.sync.ex` — `mix dala.sync` for bidirectional directory sync
+- `lib/mix/tasks/dala.file_ls.ex` — `mix dala.file_ls` for listing remote files
+
 **Battery benchmarking**:
 - `lib/mix/tasks/dala.battery_bench_android.ex` — Android battery bench
 - `lib/mix/tasks/dala.battery_bench_ios.ex` — iOS battery bench
 
 ### Development Server
 
-- `lib/mob_dev/server/` — Phoenix-based dev dashboard
+- `lib/dala_dev/server/` — Phoenix-based dev dashboard
   - `endpoint.ex` — Phoenix endpoint
   - `router.ex` — Route definitions
   - `device_poller.ex` — Periodic device discovery
   - `watch_worker.ex` — File watch and auto-push
   - `log_streamer.ex` — Log streaming from devices
+  - `log_streamer_supervisor.ex` — Isolated supervisor for log streamers
   - `log_buffer.ex` / `elixir_log_buffer.ex` — Log buffering
   - `elixir_logger.ex` — Elixir Logger forwarding
   - `log_filter.ex` — Log filtering
+  - `dashboard_live.ex` — Main dashboard LiveView
+  - `observer_live.ex` — Observer dashboard with specialized views
+  - `cluster_viz_live.ex` — Cluster visualization with D3.js
+  - `design_live.ex` — UI design tool

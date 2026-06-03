@@ -13,7 +13,7 @@ Development tooling for [Dala](https://hexdocs.pm/dala) — the BEAM-on-device m
 ```
 dala_dev/
 ├── lib/
-│   ├── mob_dev/                # Core modules (DalaDev.* namespace)
+│   ├── dala_dev/               # Core modules (DalaDev.* namespace)
 │   │   ├── discovery/          # Device discovery modules
 │   │   │   ├── android.ex      # Android device discovery via adb
 │   │   │   └── ios.ex          # iOS simulator/device discovery via xcrun simctl
@@ -23,19 +23,28 @@ dala_dev/
 │   │   │   ├── summary.ex      # Post-run analysis and statistics
 │   │   │   ├── preflight.ex    # Pre-run checklist (device ready, app installed)
 │   │   │   ├── reconnector.ex  # Auto-reconnect logic for flapping connections
-│   │   │   └── device_observer.ex  # Device event subscription (app state changes)
+│   │   │   ├── device_observer.ex  # Device event subscription (app state changes)
+│   │   │   └── ADBHelper.ex    # ADB command helpers for bench
 │   │   ├── server/             # Phoenix dev dashboard
 │   │   │   ├── endpoint.ex     # Phoenix endpoint
-│   │   │   ├── router.ex       # Route definitions
 │   │   │   ├── device_poller.ex # Periodic device discovery
 │   │   │   ├── watch_worker.ex  # File watch and auto-push
-│   │   │   └── ...             # Log streaming, buffering, filtering
+│   │   │   ├── log_streamer.ex  # Log streaming from devices
+│   │   │   ├── log_streamer_supervisor.ex # Isolated supervisor for log streamers
+│   │   │   ├── log_buffer.ex   # Log buffering
+│   │   │   ├── elixir_log_buffer.ex # Elixir log buffering
+│   │   │   ├── elixir_logger.ex # Elixir Logger forwarding
+│   │   │   ├── log_filter.ex   # Log filtering
+│   │   │   ├── dashboard_live.ex # Main dashboard LiveView
+│   │   │   ├── observer_live.ex # Observer dashboard with specialized views
+│   │   │   ├── cluster_viz_live.ex # Cluster visualization
+│   │   │   └── design_live.ex  # UI design tool
 │   │   ├── deployer.ex         # Main deployment logic (BEAM + native apps)
 │   │   ├── hot_push.ex         # Hot-push changed modules via RPC (no restart)
 │   │   ├── connector.ex        # Discovery → tunnel → restart → connect orchestration
 │   │   ├── tunnel.ex           # Port tunneling (adb forward/reverse, iproxy)
 │   │   ├── native_build.ex     # APK/.app bundle building and signing
-│   │   ├── otp_downloader.ex    # Pre-built OTP runtime downloads and caching
+│   │   ├── otp_downloader.ex   # Pre-built OTP runtime downloads and caching
 │   │   ├── device.ex           # Unified device struct with common interface
 │   │   ├── config.ex           # Configuration handling (dala.exs)
 │   │   ├── utils.ex            # Centralized utility functions (regex, ADB helpers)
@@ -55,6 +64,7 @@ dala_dev/
 │   │   ├── icon_generator.ex   # Icon generation for Android/iOS
 │   │   ├── enable.ex           # Feature enablement
 │   │   ├── qr.ex               # QR code generation
+│   │   ├── file_transfer.ex    # File/folder push, pull, sync, and ls
 │   │   └── ...
 │   └── mix/tasks/              # Mix task implementations (mix dala.*)
 │       ├── dala.deploy.ex      # Deploy builds to devices
@@ -218,7 +228,7 @@ Add to your project's `mix.exs` (dev only):
 ```elixir
   def deps do
     [
-      {:dala_dev, "~> 0.2", only: :dev}
+      {:dala_dev, "~> 0.3", only: :dev}
     ]
   end
 ```
@@ -248,15 +258,15 @@ mix dala.routes --strict  # exit non-zero (for CI)
 | `mix dala.new APP_NAME` | Generate a new Dala project (see `dala_new` archive) | `mix dala.new MyApp` |
 | `mix dala.install` | First-run setup: download OTP runtime, generate icons, write `dala.exs` | `mix dala.install` |
 | `mix dala.deploy` | Compile and push BEAMs to all connected devices | `mix dala.deploy` |
-| `mix dala.deploy --native` | Also build and install the native APK/iOS app | `mix dala.deploy --native --ios` |
+| `mix dala.deploy --native` | Also build and install the native APK/iOS app | `mix dala.deploy --native` |
 | `mix dala.connect` | Tunnel + restart + open IEx connected to device nodes | `mix dala.connect` |
 | `mix dala.connect --name my_node` | Connect with a named node (for multiple sessions) | `mix dala.connect --name dev@127.0.0.1` |
 | `mix dala.watch` | Auto-push BEAMs on file save | `mix dala.watch` |
 | `mix dala.watch_stop` | Stop a running `mix dala.watch` | `mix dala.watch_stop` |
 | `mix dala.devices` | List connected devices and their status | `mix dala.devices` |
-| `mix dala.push` | Hot-push only changed modules (no restart) | `mix dala.push --all` |
+| `mix dala.push` | Hot-push only changed modules (no restart) | `mix dala.push` |
 | `mix dala.server` | Start the dev dashboard at `localhost:4040` | `mix dala.server` |
-| `mix dala.icon` | Regenerate app icons from a source image | `mix dala.icon --source assets/logo.png` |
+| `mix dala.icon` | Regenerate app icons from a source image | `mix dala.icon assets/logo.png` |
 | `mix dala.routes` | Validate navigation destinations across the codebase | `mix dala.routes --strict` |
 | `mix dala.battery_bench_android` | Measure BEAM idle power draw on an Android device | `mix dala.battery_bench_android --duration 1800` |
 | `mix dala.battery_bench_ios` | Measure BEAM idle power draw on a physical iOS device | `mix dala.battery_bench_ios --wifi-ip 10.0.0.120` |

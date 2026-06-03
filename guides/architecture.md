@@ -95,6 +95,8 @@ As described in the system-wide [AGENTS.md](../../dala/AGENTS.md), the dala ecos
 
 **Modules**: `DalaDev.Discovery.Android`, `DalaDev.Discovery.IOS`, `DalaDev.Device`
 
+**File transfer**: `DalaDev.FileTransfer`
+
 #### Purpose
 
 Discovers connected devices using platform-specific tools and returns normalized device structs.
@@ -464,6 +466,7 @@ Battery benchmarking modules:
 - `DalaDev.Bench.Preflight` — Pre-run checklist (device ready, app installed)
 - `DalaDev.Bench.Reconnector` — Auto-reconnect logic for flapping connections
 - `DalaDev.Bench.DeviceObserver` — Device event subscription (app state changes)
+- `DalaDev.Bench.ADBHelper` — ADB command helpers for bench
 
 ---
 

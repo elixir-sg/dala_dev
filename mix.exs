@@ -4,10 +4,10 @@ defmodule DalaDev.MixProject do
   def project do
     [
       app: :dala_dev,
-      version: "0.3.0",
+      version: "0.3.1",
       elixir: "~> 1.18",
       description: "Development tooling for the Dala framework",
-      source_url: "https://github.com/manhvu/dala_dev",
+      source_url: "https://github.com/ohhi-vn/dala_dev",
       deps: deps(),
       package: package(),
       docs: docs()
@@ -24,8 +24,8 @@ defmodule DalaDev.MixProject do
       {:avatarz, "~> 0.2", optional: true},
       {:image, "~> 0.54", optional: true},
       # Dev server
-      {:phoenix_live_view, "~> 1.0"},
-      {:bandit, "~> 1.0"},
+      {:phoenix_live_view, "~> 1.1"},
+      {:bandit, "~> 1.11"},
       {:phoenix_pubsub, "~> 2.0"},
       {:plug_crypto, "~> 2.0"},
       {:ex_doc, ">= 0.0.0", only: :dev, runtime: false},
