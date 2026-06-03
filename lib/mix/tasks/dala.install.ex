@@ -45,8 +45,8 @@ defmodule Mix.Tasks.Dala.Install do
   **2. OTP download** — fetches pre-built ERTS tarballs from GitHub Releases:
 
       # Roughly equivalent to:
-      curl -L https://github.com/manhvu/dala/releases/download/<tag>/otp-android-arm64.tar.gz \
-           -o ~/.dala_dev/otp-android-arm64.tar.gz
+      curl -L https://github.com/ohhi-vn/dala/releases/download/<tag>/otp-android-arm64.tar.gz \
+           -o ~/.dala/cache/otp-android-arm64/
 
   **3. Placeholder icon** — writes the Dala logo to all platform icon sizes (pre-built PNGs,
   no system tools required). Run `mix dala.icon` afterwards to replace it with a custom icon.

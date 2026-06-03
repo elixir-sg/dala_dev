@@ -460,7 +460,7 @@ ONNX NIFs are also dirty CPU scheduled and available on both iOS and Android.
 
 **Problem**: Bluetooth and WiFi permissions setup is platform-specific and tedious.
 
-**Solution**: `mix dala.setup_bluetooth_wifi` simplifies setup. Runtime helpers: `Dala.Setup.check_bluetooth/0`, `Dala.Setup.check_wifi/0`, `Dala.Setup.diagnostic/0`.
+**Solution**: Runtime helpers: `Dala.Setup.check_bluetooth/0`, `Dala.Setup.check_wifi/0`, `Dala.Setup.diagnostic/0`.
 
 ### 23. Plugin Lifecycle and Capability Registration
 
@@ -598,7 +598,7 @@ This validates at compile time that the modules are valid `Dala.Screen` modules.
 - `Dala.Media.Clock` — media clock
 - `Dala.Media.Subtitle` — subtitles
 
-**Rule**: Media modules use the GPU surface for rendering. See `guides/media_runtime.md` for the complete media runtime documentation.
+**Rule**: Media modules use the GPU surface for rendering. See the Dala library's `guides/media_runtime.md` for the complete media runtime documentation.
 
 ### 32. File Transfer Between Dev Machine and Devices
 

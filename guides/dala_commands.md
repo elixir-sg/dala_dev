@@ -707,8 +707,9 @@ Takes screenshots or records video from connected devices.
 #### Usage
 
 ```bash
-mix dala.screen screenshot --device <id> --output screen.png
-mix dala.screen record --device <id> --output demo.mp4 --duration 30
+mix dala.screen --capture --save-as screen.png
+mix dala.screen --record --duration 30 --save-as demo.mp4
+mix dala.screen --preview
 ```
 
 ---
@@ -850,7 +851,9 @@ Runs performance benchmarks on your Elixir code.
 
 ```bash
 mix dala.bench
-mix dala.bench --module MyModule
+mix dala.bench --test test/my_bench.exs
+mix dala.bench --compare node1@host,node2@host
+mix dala.bench --report report.html --format html
 ```
 
 ---
@@ -923,4 +926,4 @@ mix dala.push --device <id>
 - [README.md](../README.md) — Project overview and architecture
 - [AGENTS.md](../AGENTS.md) — Developer guide for contributing
 - [build_release.md](../build_release.md) — Release build walkthrough
-- [guides/publishing_to_testflight.md](publishing_to_testflight.md) — iOS TestFlight publishing
+- [release_and_packaging.md](release_and_packaging.md) — Building and distributing production apps

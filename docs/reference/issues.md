@@ -805,7 +805,7 @@ collision when multiple sims are booted), but the iOS BEAM startup in
 `SIMCTL_CHILD_*`.
 
 **Impact** — agent can't use `Dala.Test.tap/find/assigns` against the sim,
-which is the recommended primary inspection path per `guides/agentic_coding.md`.
+which is the recommended primary inspection path.
 Falls back to MCP tools (screenshots + AX tree), which work but are
 slower and less precise (per the "Layer 1 first" guidance).
 

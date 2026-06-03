@@ -810,4 +810,4 @@ Update `DalaDev.Provision.diagnose_xcodebuild_failure/1` when encountering new A
 - [Dala Commands Guide](dala_commands.md) — All `mix dala.*` commands with usage and internals
 - [build_release.md](../build_release.md) — OTP cross-compilation walkthrough
 - [README.md](../README.md) — Project overview, quick command reference
-- [publishing_to_testflight.md](publishing_to_testflight.md) — iOS TestFlight publishing
+- [release_and_packaging.md](release_and_packaging.md) — Building and distributing production apps

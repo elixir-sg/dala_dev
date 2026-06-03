@@ -200,7 +200,7 @@ Provides web-based development dashboard with live feedback:
 - **[Dala Commands Guide](guides/dala_commands.md)** — Complete reference for all `mix dala.*` commands
 - **[AGENTS.md](AGENTS.md)** — Developer guide for contributing to dala_dev
 - **[build_release.md](build_release.md)** — Release build walkthrough
-- **[publishing_to_testflight.md](guides/publishing_to_testflight.md)** — iOS TestFlight publishing
+- **[Release and Packaging Guide](guides/release_and_packaging.md)** — Building and distributing production apps
 
 ### Prerequisites
 
@@ -523,9 +523,8 @@ mix dala.battery_bench_ios --no-build --wifi-ip 10.0.0.120 --log-path /tmp/run.c
 
 The Nerves-tuned BEAM is essentially indistinguishable from a stock Android app at idle. The untuned BEAM costs ~25% more because schedulers spin-wait instead of sleeping.
 
-**iOS results** are tracked separately in `dala/guides/why_beam.md` (different
-device, different methodology — physical iPhone with screen on/off
-distinction). The `--preset` shortcuts (`untuned`/`sbwt`/`nerves`) aren't
+**iOS results** are tracked separately (different device, different
+methodology — physical iPhone with screen on/off distinction). The `--preset` shortcuts (`untuned`/`sbwt`/`nerves`) aren't
 useful on iOS because they require a full Xcode rebuild (which Dala projects
 don't have), so on iOS you set flags via `mix dala.deploy --beam-flags ...`
 and bench with `--no-build`.

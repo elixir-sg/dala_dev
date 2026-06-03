@@ -26,7 +26,7 @@ defmodule DalaDev.Server.WebLive do
       <aside class="dala-sidebar">
         <div class="dala-sidebar-header">
           <h1 class="dala-logo">Dala</h1>
-          <span class="dala-version">v0.3.28</span>
+          <span class="dala-version">v#{Application.spec(:dala_dev, :vsn)}</span>
         </div>
 
         <nav class="dala-nav">

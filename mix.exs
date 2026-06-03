@@ -4,7 +4,7 @@ defmodule DalaDev.MixProject do
   def project do
     [
       app: :dala_dev,
-      version: "0.3.1",
+      version: "0.3.2",
       elixir: "~> 1.18",
       description: "Development tooling for the Dala framework",
       source_url: "https://github.com/ohhi-vn/dala_dev",
@@ -38,8 +38,8 @@ defmodule DalaDev.MixProject do
     [
       main: "readme",
       logo: "assets/logo/Dala_logo_512.png",
-      source_url: "https://github.com/manhvu/dala_dev",
-      source_url_pattern: "https://github.com/manhvu/dala_dev/blob/main/%{path}#L%{line}",
+      source_url: "https://github.com/ohhi-vn/dala_dev",
+      source_url_pattern: "https://github.com/ohhi-vn/dala_dev/blob/main/%{path}#L%{line}",
       extras: [
         "README.md": [title: "dala_dev"],
         "guides/beginner_guide.md": [title: "Beginner Step-by-Step Guide"],
@@ -60,7 +60,7 @@ defmodule DalaDev.MixProject do
   defp package do
     [
       licenses: ["MIT", "MPL-2.0"],
-      links: %{"GitHub" => "https://github.com/manhvu/dala_dev"}
+      links: %{"GitHub" => "https://github.com/ohhi-vn/dala_dev"}
     ]
   end
 end
