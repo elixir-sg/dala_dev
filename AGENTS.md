@@ -9,9 +9,9 @@ You're in **dala_dev**, the build/deploy/devices toolkit for the dala ecosystem.
 - Performance benchmarking and battery profiling on devices
 - Cluster visualization and distributed tracing
 
-**Important**: Read [`~/code/dala/docs/reference/AGENTS.md`](../dala/docs/reference/AGENTS.md) first for the system-wide view, the three-repo topology (dala, dala_dev, dala_new), and the cross-cutting pre-empt-failure rules that apply across all repositories. The notes below are dala_dev-specific conventions and gotchas.
+**Important**: Read the Dala repo's [`AGENTS.md`](/Users/manhvu/ohhi/OSS_Lib/dala/AGENTS.md) first for the system-wide view, the three-repo topology (dala, dala_dev, dala_new), and the cross-cutting pre-empt-failure rules that apply across all repositories. The notes below are dala_dev-specific conventions and gotchas.
 
-**Dala v0.7.x** introduces a plugin architecture where Dala core knows almost nothing — plugins self-describe through schema, commands, and native capabilities. See the `Dala.Plugin` section below. New in this version: GPU render surface with compute shaders, media runtime (video, scene graph, GPU filters, GPU processor), ML stack (Nx, EMLX, CoreML, ONNX, Burn with serving/training, GPU inference), expanded platform APIs (Clipboard, Share, Location, Notify, Diag, PubSub, Registry, Permissions, LiveView), NFC, screen manager, adaptive theming, a comprehensive two-layer testing model (render tree + native UI), Spark DSL with transformers, and new facade modules (Dala.Component, Dala.ComponentServer, Dala.ComponentRegistry, Dala.Diff, Dala.List, Dala.Event, Dala.PubSub, Dala.Native NIF fallbacks).
+**Dala v0.8.0** introduces a plugin architecture where Dala core knows almost nothing — plugins self-describe through schema, commands, and native capabilities. See the `Dala.Plugin` section below. New in this version: GPU render surface with compute shaders, media runtime (video, scene graph, GPU filters, GPU processor), ML stack (Nx, EMLX, CoreML, ONNX, Burn with serving/training, GPU inference), expanded platform APIs (Clipboard, Share, Location, Notify, Diag, PubSub, Registry, Permissions, LiveView), NFC, screen manager, adaptive theming, a comprehensive two-layer testing model (render tree + native UI), Spark DSL with transformers and compile-time verification (`Dala.Spark.DslVerifier`, `Dala.Spark.DslCompileHook`), a `Dala.Designer` dev tool (renamed from `Dala.Preview`), new Mix tasks (`mix dala.verify`, `mix dala.plugin.new`, `mix dala.setup_bluetooth_wifi`), platform-specific setup modules (`Dala.Setup.Android`, `Dala.Setup.Ios`), and new facade modules (Dala.Component, Dala.ComponentServer, Dala.ComponentRegistry, Dala.Diff, Dala.List, Dala.Event, Dala.PubSub, Dala.Native NIF fallbacks).
 
 ## What this repo is
 
@@ -63,6 +63,13 @@ These are the commands users run via `mix dala.<task>`:
 - **`mix dala.logs`** — Collect and stream logs from devices and cluster nodes
 - **`mix dala.trace`** — Distributed tracing for dala clusters
 - **`mix dala.bench`** — Run performance benchmarks on dala nodes
+
+**Dala framework tasks** (from the dala repo, available in Dala projects):
+- **`mix dala.verify`** — Verify Dala DSL definitions and project configuration (`--dsl`, `--components`, `--strict`)
+- **`mix dala.plugin.new`** — Generate a new Dala plugin scaffold
+- **`mix dala.setup_bluetooth_wifi`** — Set up Bluetooth/WiFi permissions for both platforms (`--platform ios|android`, `--check`)
+- **`mix dala.setup_ios_bluetooth`** — Set up iOS Bluetooth specifically (`--check`)
+- **`mix dala.onboarding_test`** — Run onboarding tests for Dala projects
 
 **File transfer**:
 - **`mix dala.push_file`** — Push a file or directory to connected devices
@@ -378,7 +385,7 @@ adb forward tcp:9100 tcp:9100   # dist:  Mac → device
 - `Dala.Plugin.Event` → `Dala.Plugin.Event` (new — typed event definitions for plugins)
 - `Dala.Nav.Registry` → `Dala.Nav.Registry` (unchanged)
 - `Dala.Screen.Manager` → `Dala.Screen.Manager` (new — central registry for tracking active screens)
-- `Dala.Preview` → `Dala.Preview` (dev-only, in `dev_tools/`)
+- `Dala.Preview` → `Dala.Designer` (dev-only, in `dev_tools/`, renamed in v0.8.0)
 - `Dala.Wakelock` → `Dala.Hardware.Wakelock`
 - `Dala.Storage` → `Dala.Storage.Storage`
 - `Dala.Blob` → `Dala.Storage.Blob`
@@ -394,7 +401,14 @@ adb forward tcp:9100 tcp:9100   # dist:  Mac → device
 - `Dala.Location` → `Dala.Platform.Location`
 - `Dala.Notify` → `Dala.Platform.Notify`
 - `Dala.Video` → `Dala.Media.Video`
-- `Dala.Setup` → `Dala.Setup` (BT/WiFi setup helper, unchanged)
+- `Dala.Setup` → `Dala.Setup` (BT/WiFi setup helper, unchanged; `Dala.Setup.Android` and `Dala.Setup.Ios` are new platform-specific sub-modules)
+
+**New in v0.8.0**:
+- `Dala.Spark.DslVerifier` — Compile-time DSL verification (`lib/dala/spark/dsl_verifier.ex`)
+- `Dala.Spark.DslCompileHook` — `@before_compile` hook for DSL verification (`lib/dala/spark/dsl_compile_hook.ex`)
+- `Dala.Setup.Android` — Android BT/WiFi setup automation (`lib/dala/setup/android.ex`)
+- `Dala.Setup.Ios` — iOS BT/WiFi setup automation (`lib/dala/setup/ios.ex`)
+- `Dala.Designer` — Renamed from `Dala.Preview` (`dev_tools/dala/preview.ex`)
 
 **New facade modules** (top-level, delegate to sub-namespaces):
 - `Dala` — main facade, delegates `assign/2` and `assign/3` to `Dala.Socket`
@@ -483,7 +497,7 @@ ONNX NIFs are also dirty CPU scheduled and available on both iOS and Android.
 
 **Problem**: Developers need to preview UI without a device.
 
-**Solution**: `Dala.Preview` (in `dev_tools/`) provides:
+**Solution**: `Dala.Designer` (in `dev_tools/`) provides:
 - Static preview — generates standalone HTML with CSS that mimics Dala's styling
 - Live designer — Phoenix LiveView server with drag-and-drop component palette, property editor, live phone-frame preview, and code generation
 
@@ -779,7 +793,7 @@ Many of these functions contain parsing logic or platform-specific narrowing log
 When writing new code in dala_dev that references dala internals, use the **new sub-namespace paths** (not the facade names). Key modules and their locations:
 
 **Core**:
-- `Dala` — main facade (`lib/dala.ex`), delegates `assign/2` and `assign/3` to `Dala.Socket`
+- `Dala` — main facade (`lib/dala.ex`), delegates `assign/2` and `assign/3` to `Dala.Socket`, and `verify_dsl/1` to `Dala.Spark.Dsl`
 - `Dala.App` — app facade (`lib/dala/app.ex`), delegates to `Dala.App.App` (`lib/dala/app/app.ex`)
 - `Dala.Screen` — screen facade (`lib/dala/screen.ex`), delegates to `Dala.Screen.Screen` (`lib/dala/screen/screen.ex`)
 - `Dala.Socket` — socket struct + API (`lib/dala/socket.ex`); `Dala.Ui.Socket` is a deprecated type alias
@@ -848,6 +862,8 @@ When writing new code in dala_dev that references dala internals, use the **new 
 - `Dala.Platform.PubSub` — local PubSub (`lib/dala/platform/pub_sub.ex`)
 - `Dala.Platform.Registry` — process registry (`lib/dala/platform/registry.ex`)
 - `Dala.Setup` — BT/WiFi setup helper (`lib/dala/setup.ex`)
+- `Dala.Setup.Android` — Android BT/WiFi setup (`lib/dala/setup/android.ex`)
+- `Dala.Setup.Ios` — iOS BT/WiFi setup (`lib/dala/setup/ios.ex`)
 
 **Platform**:
 - `Dala.Platform.Native` — NIF interface (`lib/dala/platform/native.ex`)
@@ -927,6 +943,8 @@ When writing new code in dala_dev that references dala internals, use the **new 
 - `Dala.Spark.Dsl` — screen DSL (`lib/dala/spark/dsl.ex`)
 - `Dala.Spark.Dsl.Entities` — Spark DSL entities (`lib/dala/spark/dsl/entities.ex`)
 - `Dala.Spark.Dsl.ScreenHelper` — Spark DSL screen helper (`lib/dala/spark/dsl/screen_helper.ex`)
+- `Dala.Spark.DslVerifier` — Compile-time DSL verification (`lib/dala/spark/dsl_verifier.ex`)
+- `Dala.Spark.DslCompileHook` — `@before_compile` hook for DSL verification (`lib/dala/spark/dsl_compile_hook.ex`)
 - `Dala.Spark.PubSub` — Spark PubSub (`lib/dala/spark/pubsub.ex`)
 - `Dala.Spark.Transformers.GenerateMount` — Spark mount generator transformer (`lib/dala/spark/transformers/generate_mount.ex`)
 - `Dala.Spark.Transformers.PubSub` — Spark PubSub transformer (`lib/dala/spark/transformers/pubsub.ex`)
@@ -943,7 +961,7 @@ When writing new code in dala_dev that references dala internals, use the **new 
 - `Dala.Theme.AdaptiveWatcher` — adaptive theme watcher (`lib/dala/theme/adaptive_watcher.ex`)
 
 **Dev-only**:
-- `Dala.Preview` — UI preview/designer (`dev_tools/dala/preview.ex`)
+- `Dala.Designer` — UI preview/designer, renamed from `Dala.Preview` in v0.8.0 (`dev_tools/dala/preview.ex`)
 
 ---
 
@@ -1038,6 +1056,13 @@ When writing new code in dala_dev that references dala internals, use the **new 
 - `lib/mix/tasks/dala.trace.ex` — `mix dala.trace` for distributed tracing
 - `lib/mix/tasks/dala.bench.ex` — `mix dala.bench` for performance benchmarks
 
+**Dala framework tasks** (from the dala repo, available in Dala projects):
+- `lib/mix/tasks/dala.verify.ex` — `mix dala.verify` for DSL verification
+- `lib/mix/tasks/dala.onboarding_test.ex` — `mix dala.onboarding_test` for onboarding tests
+- `lib/mix/tasks/dala.setup_ios_bluetooth.ex` — `mix dala.setup_ios_bluetooth` for iOS BT setup
+- `lib/mix/tasks/setup_bluetooth_wifi.ex` — `mix dala.setup_bluetooth_wifi` for BT/WiFi setup
+- `lib/mix/tasks/dala/plugin/new.ex` — `mix dala.plugin.new` for plugin scaffolding
+
 **Battery benchmarking**:
 - `lib/mix/tasks/dala.battery_bench_android.ex` — Android battery bench
 - `lib/mix/tasks/dala.battery_bench_ios.ex` — iOS battery bench
@@ -1073,7 +1098,7 @@ This file is a living document that should evolve with the codebase. Keep it cur
 - **[Dala Commands Guide](guides/dala_commands.md)** — Complete reference for all `mix dala.*` commands with detailed explanations
 - **[README.md](README.md)** — Project overview, architecture, and quick command reference
 - **[build_release.md](build_release.md)** — Release build walkthrough with step-by-step instructions
-- **[~/code/dala/docs/reference/AGENTS.md](../dala/docs/reference/AGENTS.md)** — System-wide orientation and pre-empt-failure rules
+- **[Dala AGENTS.md](/Users/manhvu/ohhi/OSS_Lib/dala/AGENTS.md)** — System-wide orientation and pre-empt-failure rules
 
 ### When to Update
 
