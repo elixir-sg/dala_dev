@@ -21,6 +21,7 @@ defmodule DalaDev.MixProject do
   defp deps do
     [
       {:eqrcode, "~> 0.2"},
+      {:ex_ratatui, "~> 0.11"},
       {:avatarz, "~> 0.2", optional: true},
       {:image, "~> 0.54", optional: true},
       # Dev server
@@ -44,7 +45,8 @@ defmodule DalaDev.MixProject do
         "README.md": [title: "dala_dev"],
         "guides/beginner_guide.md": [title: "Beginner Step-by-Step Guide"],
         "guides/development_workflow.md": [title: "Development Workflow"],
-        "guides/release_and_packaging.md": [title: "Release and Packaging"]
+        "guides/release_and_packaging.md": [title: "Release and Packaging"],
+        "guides/tui.md": [title: "Terminal UI (TUI)"]
       ],
       groups_for_extras: [
         Guides: ~r/guides\/.*/
@@ -52,6 +54,7 @@ defmodule DalaDev.MixProject do
       groups_for_modules: [
         "Mix Tasks": ~r/Mix\.Tasks\./,
         Server: ~r/DalaDev\.Server/,
+        TUI: ~r/DalaDev\.Tui/,
         Internals: ~r/DalaDev/
       ]
     ]

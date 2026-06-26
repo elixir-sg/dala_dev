@@ -55,6 +55,7 @@ These are the commands users run via `mix dala.<task>`:
 - **`mix dala.routes`** — Validate navigation destinations across the codebase
 
 **Development tools**:
+- **`mix dala_dev.tui`** — Launch interactive TUI dashboard for devices, tasks, and deployments
 - **`mix dala.server`** — Start dev dashboard (Phoenix, localhost:4040)
 - **`mix dala.web`** — Start comprehensive web UI for all dala_dev features
 - **`mix dala.gen.live_screen`** — Generate a LiveView + Dala.Screen pair
@@ -749,6 +750,26 @@ Many of these functions contain parsing logic or platform-specific narrowing log
 - `DalaDev.Utils.run_adb_with_timeout/2` — ADB command with timeout protection
 - `DalaDev.Utils.parse_adb_devices_output/1` — Parses ADB devices output
 
+### Terminal UI (TUI)
+
+**TUI state and views**:
+- `DalaDev.Tui.State.nav_items/1` — Returns navigation items for current tab
+- `DalaDev.Tui.State.detail_items/1` — Returns detail items for current selection
+- `DalaDev.Tui.State.handle_key/2` — Pure key handling (returns updated state)
+- `DalaDev.Tui.Devices.list/0` — Lists all discovered devices with node metadata
+- `DalaDev.Tui.Devices.display_name/1` — Formats device for display
+- `DalaDev.Tui.Devices.status_icon/1` — Returns status icon for device
+- `DalaDev.Tui.Devices.summary/1` — Returns one-line device summary
+- `DalaDev.Tui.Remote.query/1` — Queries a remote node for version/memory/screen
+- `DalaDev.Tui.Remote.connected_nodes/0` — Lists connected distribution nodes
+- `DalaDev.Tui.Remote.reachable?/1` — Checks if a node is reachable
+- `DalaDev.Tui.Tasks.list/0` — Lists all available tasks
+- `DalaDev.Tui.Tasks.by_category/1` — Filters tasks by category
+- `DalaDev.Tui.Views.NavPanel.render/2` — Renders navigation panel
+- `DalaDev.Tui.Views.DetailPanel.render/2` — Renders detail panel
+- `DalaDev.Tui.Views.StatusBar.render/2` — Renders status bar
+- `DalaDev.Tui.Views.HelpOverlay.render/1` — Renders help overlay
+
 ### Monitoring and Observability
 
 **Cluster visualization**:
@@ -965,6 +986,14 @@ When writing new code in dala_dev that references dala internals, use the **new 
 
 ---
 
+### 34. TUI Rendering Requires `ex_ratatui` Dependency
+
+**Problem**: The TUI modules use `ExRatatui` structs (`%Block{}`, `%Paragraph{}`, `%Span{}`, etc.) which are only available when `ex_ratatui` is installed.
+
+**Solution**: The TUI is included in `mix.exs` as a dependency. If you're developing the TUI without `ex_ratatui` in your dev environment, you'll get struct errors. Always run `mix deps.get` after pulling changes.
+
+**Rule**: The TUI modules are compiled in all environments. If you want to make the TUI optional (dev-only), wrap it in a conditional compilation block or move it to `dev_tools/`.
+
 **Remember**: If you make any of these private, every downstream test breaks loudly. But worse, you'll lose the ability to evolve the parsers safely through refactoring with test coverage.
 
 ## Key Files and Their Purposes
@@ -1000,6 +1029,19 @@ When writing new code in dala_dev that references dala internals, use the **new 
 - `lib/dala_dev/screen_capture.ex` — Screenshot and video capture
 - `lib/dala_dev/network.ex` — Network diagnostics
 - `lib/dala_dev/network_diag.ex` — Network diagnostic utilities
+
+**Terminal UI (TUI)**:
+- `lib/dala_dev/tui.ex` — TUI public API and entry point
+- `lib/dala_dev/tui/app.ex` — ExRatatui app callback
+- `lib/dala_dev/tui/state.ex` — Pure navigation state and key handling
+- `lib/dala_dev/tui/devices.ex` — Device discovery with node/dist port metadata
+- `lib/dala_dev/tui/remote.ex` — Remote node queries (version, screen, memory, latency)
+- `lib/dala_dev/tui/tasks.ex` — Mix task definitions for TUI
+- `lib/dala_dev/tui/theme.ex` — Color palette and styles
+- `lib/dala_dev/tui/views/nav_panel.ex` — Left panel rendering
+- `lib/dala_dev/tui/views/detail_panel.ex` — Right panel rendering
+- `lib/dala_dev/tui/views/status_bar.ex` — Status bar with version/connection info
+- `lib/dala_dev/tui/views/help_overlay.ex` — Help overlay rendering
 
 **Other**:
 - `lib/dala_dev/emulators.ex` — Emulator lifecycle management
@@ -1047,6 +1089,7 @@ When writing new code in dala_dev that references dala internals, use the **new 
 - `lib/mix/tasks/dala.routes.ex` — `mix dala.routes` for navigation validation
 
 **Development tools**:
+- `lib/mix/tasks/dala_dev.tui.ex` — `mix dala_dev.tui` for interactive TUI dashboard
 - `lib/mix/tasks/dala.server.ex` — `mix dala.server` for dev dashboard
 - `lib/mix/tasks/dala.web.ex` — `mix dala.web` for comprehensive web UI
 - `lib/mix/tasks/dala.gen.live_screen.ex` — `mix dala.gen.live_screen` for LiveView+Screen generation
@@ -1096,6 +1139,7 @@ This file is a living document that should evolve with the codebase. Keep it cur
 - **[Release and Packaging Guide](guides/release_and_packaging.md)** — Building and distributing production apps
 - **[Architecture Guide](guides/architecture.md)** — Complete technical reference for dala_dev architecture
 - **[Dala Commands Guide](guides/dala_commands.md)** — Complete reference for all `mix dala.*` commands with detailed explanations
+- **[Terminal UI (TUI)](guides/tui.md)** — Interactive TUI dashboard with remote debugging, screen info, and version tracking
 - **[README.md](README.md)** — Project overview, architecture, and quick command reference
 - **[build_release.md](build_release.md)** — Release build walkthrough with step-by-step instructions
 - **[Dala AGENTS.md](/Users/manhvu/ohhi/OSS_Lib/dala/AGENTS.md)** — System-wide orientation and pre-empt-failure rules
@@ -1109,6 +1153,7 @@ Update this file in the **same commit** when you:
 - Change the testing strategy or requirements
 - Add new Mix tasks or core modules
 - Update the release process
+- Add or change TUI views, keybindings, or state transitions
 
 ### Why It Matters
 
